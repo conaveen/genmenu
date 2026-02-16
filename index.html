@@ -1,738 +1,817 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>122 Bn Officers' Mess - Menu Designer</title>
-    
-    <!-- React and ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- HTML2Canvas & jsPDF for Export -->
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+import React, { useState, useRef } from 'react';
+import { 
+  Check, ChevronDown, ChevronRight, Info, Wine, 
+  Utensils, Calendar, Download, Palette, 
+  Layout, Settings, Printer, Type, Image as ImageIcon,
+  Coffee, Plus, X, Sliders, Move, CupSoda, Bold, Italic,
+  Share2, FileImage, MessageCircle
+} from 'lucide-react';
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+/**
+ * MENU DESIGNER - VERSION 13.0 (Export Options Added)
+ */
 
-    <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+// --- DATA: COCKTAILS & MOCKTAILS (50+ Items) ---
+const COCKTAIL_DB = [
+  // --- WHISKY ---
+  { id: 'ck1', name: 'Whisky Sour', type: 'whisky', ingredients: '60ml Whisky, 20ml Lemon Juice, 15ml Syrup, 1 Egg White', tip: 'Dry shake first.' },
+  { id: 'ck2', name: 'Old Fashioned', type: 'whisky', ingredients: '60ml Bourbon, Bitters, Sugar Cube', tip: 'Stir gently.' },
+  { id: 'ck3', name: 'Manhattan', type: 'whisky', ingredients: '60ml Rye, 30ml Sweet Vermouth, Bitters', tip: 'Stir, strain.' },
+  { id: 'ck4', name: 'Mint Julep', type: 'whisky', ingredients: '60ml Bourbon, Mint, Sugar', tip: 'Crushed ice.' },
+  { id: 'ck5', name: 'Rusty Nail', type: 'whisky', ingredients: '45ml Scotch, 25ml Drambuie', tip: 'Build over ice.' },
+  { id: 'ck23', name: 'Hot Toddy', type: 'whisky', ingredients: 'Whisky, Honey, Hot Water, Lemon, Cloves', tip: 'Serve hot.' },
+  { id: 'ck24', name: 'Irish Coffee', type: 'whisky', ingredients: 'Whisky, Coffee, Sugar, Cream', tip: 'Float cream.' },
+  { id: 'ck25', name: 'Boulevardier', type: 'whisky', ingredients: 'Bourbon, Campari, Sweet Vermouth', tip: 'Stir with ice.' },
+  { id: 'ck26', name: 'Highball', type: 'whisky', ingredients: 'Whisky, Soda, Lemon', tip: 'Tall glass.' },
+  // --- VODKA ---
+  { id: 'ck7', name: 'Bloody Mary', type: 'vodka', ingredients: 'Vodka, Tomato Juice, Spices', tip: 'Roll, don\'t shake.' },
+  { id: 'ck8', name: 'Cosmopolitan', type: 'vodka', ingredients: 'Vodka Citron, Cointreau, Cranberry', tip: 'Shake well.' },
+  { id: 'ck9', name: 'Moscow Mule', type: 'vodka', ingredients: 'Vodka, Ginger Beer, Lime', tip: 'Copper mug.' },
+  { id: 'ck10', name: 'Screwdriver', type: 'vodka', ingredients: 'Vodka, Orange Juice', tip: 'Build on ice.' },
+  { id: 'ck11', name: 'Espresso Martini', type: 'vodka', ingredients: 'Vodka, Espresso, Kahlua', tip: 'Shake hard.' },
+  { id: 'ck27', name: 'White Russian', type: 'vodka', ingredients: 'Vodka, Kahlua, Cream', tip: 'Layer.' },
+  { id: 'ck28', name: 'Black Russian', type: 'vodka', ingredients: 'Vodka, Kahlua', tip: 'On rocks.' },
+  { id: 'ck30', name: 'Sex on the Beach', type: 'vodka', ingredients: 'Vodka, Peach Schnapps, OJ, Cranberry', tip: 'Fruity.' },
+  // --- GIN ---
+  { id: 'ck12', name: 'Gin & Tonic', type: 'gin', ingredients: 'Gin, Tonic, Lime', tip: 'Lots of ice.' },
+  { id: 'ck13', name: 'Martini (Dry)', type: 'gin', ingredients: 'Gin, Dry Vermouth', tip: 'Stirred.' },
+  { id: 'ck14', name: 'Tom Collins', type: 'gin', ingredients: 'Gin, Lemon, Sugar, Soda', tip: 'Tall glass.' },
+  { id: 'ck15', name: 'Negroni', type: 'gin', ingredients: 'Gin, Campari, Sweet Vermouth', tip: 'Equal parts.' },
+  { id: 'ck31', name: 'Gimlet', type: 'gin', ingredients: 'Gin, Lime Cordial', tip: 'Shake well.' },
+  { id: 'ck32', name: 'French 75', type: 'gin', ingredients: 'Gin, Lemon, Sugar, Champagne', tip: 'Flute glass.' },
+  // --- RUM & OTHERS ---
+  { id: 'ck17', name: 'Mojito', type: 'rum', ingredients: 'Rum, Mint, Lime, Sugar, Soda', tip: 'Muddle gently.' },
+  { id: 'ck18', name: 'Cuba Libre', type: 'rum', ingredients: 'Rum, Cola, Lime', tip: 'Squeeze lime.' },
+  { id: 'ck19', name: 'Daiquiri', type: 'rum', ingredients: 'Rum, Lime, Sugar', tip: 'Shake well.' },
+  { id: 'ck20', name: 'Pina Colada', type: 'rum', ingredients: 'Rum, Pineapple, Coconut', tip: 'Blend.' },
+  { id: 'ck22', name: 'Rum Punch (Fauji)', type: 'rum', ingredients: 'Dark Rum, Hot Water, Spices', tip: 'Winter special.' },
+  { id: 'ck35', name: 'LIIT', type: 'spirits', ingredients: '5 Spirits, Lemon, Cola', tip: 'Potent.' },
+  { id: 'ck39', name: 'Margarita', type: 'spirits', ingredients: 'Tequila, Triple Sec, Lime', tip: 'Salt rim.' },
 
-        /* Print Specifics */
-        @media print {
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-        }
+  // --- MOCKTAILS (50+ ITEMS) ---
+  { id: 'mk1', name: 'Virgin Mojito', type: 'mocktail', ingredients: 'Mint, Lime, Sugar, Soda', tip: 'Classic refresher.' },
+  { id: 'mk2', name: 'Fruit Punch', type: 'mocktail', ingredients: 'Mix Juices, Ice Cream', tip: 'Mess classic.' },
+  { id: 'mk3', name: 'Blue Lagoon', type: 'mocktail', ingredients: 'Blue Curacao, Sprite, Lemon', tip: 'Visual appeal.' },
+  { id: 'mk4', name: 'Aam Panna', type: 'mocktail', ingredients: 'Raw Mango, Spices', tip: 'Summer staple.' },
+  { id: 'mk5', name: 'Masala Coke', type: 'mocktail', ingredients: 'Coke, Chaat Masala, Lemon', tip: 'Desi twist.' },
+  { id: 'mk6', name: 'Virgin Mary', type: 'mocktail', ingredients: 'Tomato, Spices, Lemon', tip: 'Savory.' },
+  { id: 'mk7', name: 'Shirley Temple', type: 'mocktail', ingredients: 'Ginger Ale, Grenadine', tip: 'Sweet.' },
+  { id: 'mk8', name: 'Cinderella', type: 'mocktail', ingredients: 'Pineapple, Orange, Lemon', tip: 'Fruity.' },
+  { id: 'mk9', name: 'Gunner', type: 'mocktail', ingredients: 'Ginger Ale, Ginger Beer', tip: 'Club favorite.' },
+  { id: 'mk10', name: 'Peach Iced Tea', type: 'mocktail', ingredients: 'Peach Syrup, Tea', tip: 'Chilled.' },
+  { id: 'mk11', name: 'Lemon Iced Tea', type: 'mocktail', ingredients: 'Lemon, Tea, Sugar', tip: 'Standard.' },
+  { id: 'mk12', name: 'Watermelon Mojito', type: 'mocktail', ingredients: 'Watermelon, Mint, Soda', tip: 'Fresh fruit.' },
+  { id: 'mk13', name: 'Cucumber Cooler', type: 'mocktail', ingredients: 'Cucumber, Lime, Sprite', tip: 'Spa drink.' },
+  { id: 'mk14', name: 'Ginger Fizz', type: 'mocktail', ingredients: 'Ginger, Lemon, Soda', tip: 'Digestive.' },
+  { id: 'mk15', name: 'Strawberry Lemonade', type: 'mocktail', ingredients: 'Strawberry, Lemon, Soda', tip: 'Berry fresh.' },
+  { id: 'mk16', name: 'Mango Mule', type: 'mocktail', ingredients: 'Mango, Ginger Beer', tip: 'Spicy sweet.' },
+  { id: 'mk17', name: 'Virgin Sangria', type: 'mocktail', ingredients: 'Grape Juice, Fruits', tip: 'Wine sub.' },
+  { id: 'mk18', name: 'Kiwi Margarita', type: 'mocktail', ingredients: 'Kiwi, Lime, Sugar', tip: 'Green tangy.' },
+  { id: 'mk19', name: 'Pom Spritzer', type: 'mocktail', ingredients: 'Pomegranate, Soda', tip: 'Antioxidant.' },
+  { id: 'mk20', name: 'Apple Highball', type: 'mocktail', ingredients: 'Apple Juice, Soda', tip: 'Crisp.' },
+  { id: 'mk21', name: 'Rose Sherbet', type: 'mocktail', ingredients: 'Rose Syrup, Milk/Water', tip: 'Floral.' },
+  { id: 'mk22', name: 'Khus Sherbet', type: 'mocktail', ingredients: 'Khus Syrup, Water', tip: 'Cooling.' },
+  { id: 'mk23', name: 'Thandai', type: 'mocktail', ingredients: 'Milk, Nuts, Spices', tip: 'Rich.' },
+  { id: 'mk24', name: 'Jaljeera', type: 'mocktail', ingredients: 'Jaljeera, Water, Boondi', tip: 'Appetizer.' },
+  { id: 'mk25', name: 'Sol Kadhi', type: 'mocktail', ingredients: 'Kokum, Coconut Milk', tip: 'Digestive.' },
+  { id: 'mk26', name: 'Kokum Sharbat', type: 'mocktail', ingredients: 'Kokum, Sugar', tip: 'Sweet sour.' },
+  { id: 'mk27', name: 'Sweet Lassi', type: 'mocktail', ingredients: 'Yogurt, Sugar', tip: 'Heavy.' },
+  { id: 'mk28', name: 'Salted Lassi', type: 'mocktail', ingredients: 'Yogurt, Salt', tip: 'Savory.' },
+  { id: 'mk29', name: 'Mango Lassi', type: 'mocktail', ingredients: 'Mango, Yogurt', tip: 'Dessert.' },
+  { id: 'mk30', name: 'Masala Chaas', type: 'mocktail', ingredients: 'Buttermilk, Spices', tip: 'Light.' },
+  { id: 'mk31', name: 'Badam Milk', type: 'mocktail', ingredients: 'Almond, Milk', tip: 'Warm/Cold.' },
+  { id: 'mk32', name: 'Kesar Milk', type: 'mocktail', ingredients: 'Saffron, Milk', tip: 'Royal.' },
+  { id: 'mk33', name: 'Virgin Paloma', type: 'mocktail', ingredients: 'Grapefruit, Soda', tip: 'Citrus.' },
+  { id: 'mk34', name: 'Roy Rogers', type: 'mocktail', ingredients: 'Cola, Grenadine', tip: 'Classic.' },
+  { id: 'mk35', name: 'Arnold Palmer', type: 'mocktail', ingredients: 'Tea, Lemonade', tip: 'Half & Half.' },
+  { id: 'mk36', name: 'Berry Blast', type: 'mocktail', ingredients: 'Mixed Berries, Soda', tip: 'Fruity.' },
+  { id: 'mk37', name: 'Spicy Guava', type: 'mocktail', ingredients: 'Guava, Chilli', tip: 'Masala.' },
+  { id: 'mk38', name: 'Orange Julius', type: 'mocktail', ingredients: 'OJ, Milk, Vanilla', tip: 'Creamy.' },
+  { id: 'mk39', name: 'Virgin Colada', type: 'mocktail', ingredients: 'Pineapple, Coconut', tip: 'Tropical.' },
+  { id: 'mk40', name: 'Nojito', type: 'mocktail', ingredients: 'Mint, Lime, Soda', tip: 'No sugar.' },
+  { id: 'mk41', name: 'Safe Sex on Beach', type: 'mocktail', ingredients: 'Cranberry, OJ, Peach', tip: 'Mock version.' },
+  { id: 'mk42', name: 'Chapman', type: 'mocktail', ingredients: 'Fanta, Sprite, Bitters', tip: 'Nigerian classic.' },
+  { id: 'mk43', name: 'Mickey Mouse', type: 'mocktail', ingredients: 'Cola, Vanilla Ice Cream', tip: 'Float.' },
+  { id: 'mk44', name: 'Saint Clement', type: 'mocktail', ingredients: 'OJ, Bitter Lemon', tip: 'Citrus mix.' },
+  { id: 'mk45', name: 'Italian Soda', type: 'mocktail', ingredients: 'Syrup, Soda, Cream', tip: 'Customizable.' },
+  { id: 'mk46', name: 'Mint Lemonade', type: 'mocktail', ingredients: 'Mint, Lemon, Blended', tip: 'Slushy.' },
+  { id: 'mk47', name: 'Green Apple Soda', type: 'mocktail', ingredients: 'Green Apple Syrup, Soda', tip: 'Tart.' },
+  { id: 'mk48', name: 'Lychee Delight', type: 'mocktail', ingredients: 'Lychee Juice, Soda', tip: 'Sweet.' },
+  { id: 'mk49', name: 'Pink Panther', type: 'mocktail', ingredients: 'Strawberry, Milk, Cream', tip: 'Pink shake.' },
+  { id: 'mk50', name: 'Sundowner', type: 'mocktail', ingredients: 'Grape Juice, Sparkling Water', tip: 'Evening drink.' },
+  { id: 'mk51', name: 'Bora Bora', type: 'mocktail', ingredients: 'Pineapple, Passion Fruit, Lemon', tip: 'Exotic.' }
+];
 
-        /* Victorian Borders & Textures */
-        .border-victorian-1 { border: 4px double #DAA520; outline: 2px solid #8B4513; outline-offset: 4px; }
-        .border-victorian-2 { border: 8px solid transparent; padding: 10px; border-image: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h10v10H0zm20 20h10v10H20zM0 20h10v10H0zM20 0h10v10H20z' fill='%23DAA520' fill-opacity='0.4'/%3E") 30; }
-        .border-classic-simple { border: 1px solid #000; padding: 4px; outline: 1px solid #000; outline-offset: 4px; }
-        .border-modern-gradient { border: 4px solid; border-image-slice: 1; border-image-source: linear-gradient(to left, #743ad5, #d53a9d); }
-        .border-chalk { border: 3px dashed rgba(255,255,255,0.7); border-radius: 8px; }
+// --- DATA: FOOD & DRINK ---
+const MENU_DB = {
+  bar: {
+    singleMalt: ["Glenfiddich 12 YO", "Glenfiddich 15 YO", "Glenlivet 12 YO", "Glenlivet 15 YO", "Talisker 10 YO", "Laphroaig 10 YO", "Macallan 12 YO", "Monkey Shoulder", "Glenmorangie Original", "Singleton", "Indri (Indian)", "Amrut Fusion", "Paul John", "Bowmore", "Cardhu", "Aberfeldy", "Jura", "Highland Park"],
+    premiumBlended: ["JW Blue Label", "JW Gold Label", "JW Double Black", "JW Black Label", "JW Red Label", "Chivas Regal 18", "Chivas Regal 12", "Ballantine's Finest", "Teacher's 50", "Black Dog Gold", "100 Pipers 12", "Dewar's White Label", "J&B Rare", "Vat 69", "Black & White", "Antiquity Blue", "Blenders Pride", "Peter Scot", "Royal Challenge"],
+    brandy: ["Hennessy VS", "Hennessy XO", "Remy Martin VSOP", "Martell VS", "Morpheus XO", "Morpheus Blue", "Espada", "Good Man", "Mansion House", "Honey Bee", "McDowell's VSOP", "Kyron Premium", "Courrier Napoleon", "British Empire"],
+    rum: ["Old Monk Supreme", "Old Monk Gold", "Old Monk White", "Bacardi Carta Blanca", "Bacardi Black", "Bacardi Gold", "Bacardi Limon", "Captain Morgan Spiced", "Captain Morgan Dark", "Hercules", "McDowell's Celebration", "Contessa", "Malibu", "Havana Club 3YO", "Havana Club 7YO", "Appleton Estate", "Mount Gay Eclipse", "Kraken Black Spiced", "Sailor Jerry", "Plantation 3 Stars", "Ron Zacapa 23", "El Dorado 12", "Bundaberg", "Negrita", "Jolly Roger"],
+    vodka: ["Grey Goose", "Belvedere", "Ciroc", "Beluga Noble", "Beluga Gold Line", "Stolichnaya Elit", "Roberto Cavalli", "Crystal Head", "Absolut Blue", "Absolut Citron", "Absolut Mandarin", "Smirnoff Red", "Smirnoff Black", "Magic Moments Verve", "Magic Moments Remix", "Romanov", "Ketel One", "Stolichnaya", "Finlandia", "Skyy Vodka", "Tito's Handmade", "Pravda", "Uluvka", "Mamont"],
+    gin: ["Bombay Sapphire", "Tanqueray", "Gordon's", "Beefeater", "Roku", "Hendrick's", "Stranger & Sons", "Jaisalmer", "Blue Riband", "Blue Moon", "Greater Than", "Bulldog"],
+    beer: ["Kingfisher Premium", "Kingfisher Ultra", "Kingfisher Max", "Tuborg Green", "Tuborg Strong", "Carlsberg Elephant", "Heineken", "Budweiser Magnum", "Bira 91 White", "Bira 91 Blonde", "Bira 91 Light", "Bira 91 Strong", "Corona Extra", "Hoegaarden", "Stella Artois", "Peroni Nastro Azzurro", "Asahi Super Dry", "Leffe Blonde", "White Rhino Wheat", "Simba Stout", "Guinness Draught", "Foster's", "Beck's Ice", "Miller High Life", "Tsingtao", "Sapporo", "Kronenbourg 1664"]
+  },
+  beverages: {
+    juices: ["Fresh Orange Juice", "Canned Orange Juice", "Pineapple Juice", "Mango Juice", "Mixed Fruit Juice", "Apple Juice", "Cranberry Juice", "Tomato Juice", "Guava Juice", "Litchi Juice", "Pomegranate Juice", "Watermelon Juice (Fresh)", "Grape Juice"],
+    hotDrinks: ["Espresso", "Americano", "Cappuccino", "Cafe Latte", "Macchiato", "Cafe Mocha", "Hot Chocolate", "Masala Chai", "Ginger Tea", "Lemon Tea", "Green Tea", "Jasmine Tea", "Earl Grey Tea", "Assam Tea", "Filter Coffee", "Black Coffee", "Instant Coffee"],
+    softDrinks: ["Coca Cola", "Diet Coke", "Sprite", "Fanta", "Limca", "Thums Up", "Ginger Ale", "Tonic Water", "Club Soda", "Mineral Water", "Sparkling Water", "Red Bull"]
+  },
+  starters: {
+    veg: ["Paneer Tikka Ajwaini", "Paneer Tikka Achari", "Paneer Haryali", "Paneer Malai Tikka", "Paneer Sashlik", "Chilli Paneer Dry", "Paneer 65", "Mushroom Duplex", "Stuffed Mushroom", "Mushroom Salt & Pepper", "Hara Bhara Kebab", "Dahi Ke Sholey", "Dahi Kebab", "Veg Seekh Kebab", "Corn Cheese Balls", "American Corn S&P", "Baby Corn Fritters", "Crispy Baby Corn", "Veg Manchurian Dry", "Gobi Manchurian", "Honey Chilli Potato", "Veg Spring Rolls", "Veg Gold Coin", "Cheese Cherry Pineapple", "Cajun Potato", "Aloo Nazakat", "Tandoori Aloo", "Jeera Aloo Dry", "French Fries", "Potato Wedges", "Veg Momos", "Paneer Momos", "Soya Chaap Tikka", "Soya Malai Chaap", "Lotus Stem Honey Chilli", "Crispy Veg", "Veg Wontons", "Mix Pakoras", "Moong Dal Bhajiya", "Peanut Masala", "Chana Jor Garam", "Masala Papad Cone", "Bruschetta", "Falafel", "Veg Cutlet", "Cheese Poppers", "Veg Shammi"],
+    nonVeg: ["Chicken Tikka Angara", "Murgh Malai Tikka", "Chicken Achari", "Chicken Haryali", "Chicken Lehsuni", "Chicken Kali Mirch", "Tandoori Chicken", "Tangdi Kebab", "Kalmi Kebab", "Reshmi Kebab", "Afghani Chicken", "Bhatti Ka Murgh", "Chicken Seekh", "Mutton Seekh", "Shammi Kebab", "Galouti Kebab", "Chapli Kebab", "Mutton Burra", "Mutton Boti", "Kakori Kebab", "Chicken Lollipop", "Drums of Heaven", "Chilli Chicken Dry", "Chicken 65", "Chicken Manchurian", "Chicken S&P", "Chicken Spring Rolls", "Chicken Momos", "Lemon Chicken", "Chicken Fry", "Chicken Ghee Roast", "Fish Amritsari", "Fish Tikka", "Fish Fry", "Fish Finger", "Fish Orly", "Chilli Fish", "Apollo Fish", "Prawns Koliwada", "Golden Fried Prawns", "Butter Garlic Prawns", "Chilli Prawns", "Prawns Tempura", "Prawns S&P", "Egg Pakora", "Masala Omelette", "Keema Samosa", "Mutton Balls", "Chicken Satey", "Chicken Wings", "Pathar Ka Gosht"]
+  },
+  mains: {
+    veg: ["Paneer Butter Masala", "Kadhai Paneer", "Shahi Paneer", "Palak Paneer", "Paneer Lababdar", "Paneer Do Pyaza", "Paneer Bhurji", "Paneer Pasanda", "Paneer Makhani", "Handi Paneer", "Paneer Tikka Masala", "Matar Paneer", "Methi Malai Paneer", "Malai Kofta", "Veg Kofta", "Nargisi Kofta Veg", "Dum Aloo Kashmiri", "Dum Aloo Banarasi", "Jeera Aloo", "Aloo Gobi Adraki", "Aloo Matar", "Aloo Methi", "Mix Veg", "Veg Jalfrezi", "Veg Kolhapuri", "Veg Jaipuri", "Veg Handi", "Navratan Korma", "Methi Matar Malai", "Corn Palak", "Sarson Ka Saag", "Chana Masala", "Pindi Chana", "Amritsari Chole", "Rajma Masala", "Dal Makhani", "Dal Tadka", "Dal Fry", "Dal Panchmel", "Dal Bukhara", "Bhindi Masala", "Kurkuri Bhindi", "Baingan Bharta", "Bharwan Baingan", "Mushroom Masala", "Matar Mushroom", "Veg Manchurian Gravy", "Veg Au Gratin", "Baked Veg", "Thai Green Curry", "Thai Red Curry", "Stir Fried Veg", "Veg Stew", "Gatte Ki Sabzi", "Kadi Pakora", "Undhiyu", "Lauki Kofta"],
+    nonVeg: ["Butter Chicken", "Chicken Curry", "Chicken Masala", "Kadhai Chicken", "Chicken Handi", "Chicken Lababdar", "Chicken Tikka Masala", "Chicken Do Pyaza", "Chicken Changezi", "Chicken Chettinad", "Chicken Korma", "Chicken Stew", "Chicken Rara", "Chicken Mughlai", "Chicken Saagwala", "Chicken Vindaloo", "Methi Chicken", "Dhaba Chicken", "Murgh Musallam", "Lemon Chicken Gravy", "Pepper Chicken", "Chicken Kolhapuri", "Mutton Rogan Josh", "Mutton Curry", "Mutton Korma", "Mutton Rara", "Mutton Do Pyaza", "Laal Maas", "Jungli Maas", "Kosha Mangsho", "Keema Matar", "Bhuna Gosht", "Mutton Vindaloo", "Nalli Nihari", "Yakhni", "Handi Meat", "Saag Meat", "Mutton Beliram", "Fish Curry", "Fish Masala", "Goan Fish Curry", "Fish Moilee", "Malabar Fish Curry", "Egg Curry", "Egg Masala", "Chilli Chicken Gravy", "Chilli Fish Gravy", "Garlic Chicken", "Schezwan Chicken", "Thai Green Curry Chicken", "Thai Red Curry Chicken", "Roast Chicken", "Lamb Stew", "Pork Vindaloo"]
+  },
+  soups: ["Cream of Tomato", "Tamatar Dhaniya Shorba", "Sweet Corn Veg", "Sweet Corn Chicken", "Hot & Sour Veg", "Hot & Sour Chicken", "Manchow Veg", "Manchow Chicken", "Lemon Coriander", "Cream of Mushroom", "Mulligatawny", "Chicken Clear", "Yakhni Shorba", "Palak Shorba", "Dal Shorba", "French Onion", "Minestrone", "Lung Fung", "Tom Yum", "Talumein"],
+  salads: ["Green Salad Slices", "Green Salad Diced", "Kachumber", "Russian Salad", "Waldorf Salad", "Macaroni Salad", "Pasta Salad", "Coleslaw", "Kimchi", "Ceasar Salad", "Greek Salad", "Sprouted Moong", "Aloo Chana Chat", "Corn Salad", "Three Bean Salad", "Laccha Onion", "Sirka Onion", "Fried Chillies", "Lemon Wedges", "Fruit Chat", "Beetroot Salad"],
+  accompaniments: {
+     chutneys: ["Mint Chutney", "Tamarind Chutney", "Mango Pickle", "Lemon Pickle", "Mix Pickle", "Garlic Chutney", "Coconut Chutney", "Tomato Salsa", "Schezwan Sauce", "Sweet Chilli"],
+     papad: ["Roasted Papad", "Fried Papad", "Masala Papad", "Papad Cone"],
+     raita: ["Mix Veg Raita", "Boondi Raita", "Pineapple Raita", "Cucumber Raita", "Aloo Raita", "Pudina Raita", "Burani Raita", "Fruit Raita", "Dahi Vada", "Dahi Bhalla", "Plain Curd"]
+  },
+  rice: ["Steamed Rice", "Jeera Rice", "Peas Pulao", "Veg Pulao", "Kashmiri Pulao", "Navratan Pulao", "Corn Pulao", "Paneer Pulao", "Veg Biryani", "Chicken Biryani", "Mutton Biryani", "Egg Biryani", "Hyderabadi Biryani", "Lucknowi Biryani", "Curd Rice", "Lemon Rice", "Tamarind Rice", "Tomato Rice", "Veg Fried Rice", "Egg Fried Rice", "Chicken Fried Rice", "Schezwan Rice", "Burnt Garlic Rice", "Khichdi", "Masala Khichdi", "Bisibele Bath", "Ghee Rice", "Saffron Rice"],
+  breads: ["Tandoori Roti", "Butter Roti", "Plain Naan", "Butter Naan", "Garlic Naan", "Cheese Naan", "Kashmiri Naan", "Missi Roti", "Laccha Paratha", "Pudina Paratha", "Mirchi Paratha", "Aloo Paratha", "Paneer Paratha", "Kulcha", "Amritsari Kulcha", "Onion Kulcha", "Bhatura", "Paneer Bhatura", "Poori (Plain)", "Bedmi Poori", "Palak Poori", "Methi Poori", "Aloo Poori", "Masala Poori", "Ajwain Poori", "Luchi", "Radhaballavi", "Phulka", "Bread Basket", "Dinner Rolls", "Sheermal", "Roomali Roti"],
+  desserts: ["Gulab Jamun", "Kala Jamun", "Gajar Halwa", "Moong Dal Halwa", "Rasmalai", "Rasgulla", "Vanilla Ice Cream", "Strawberry Ice Cream", "Chocolate Ice Cream", "Butterscotch Ice Cream", "Kesar Pista Ice Cream", "Kulfi Falooda", "Matka Kulfi", "Shahi Tukda", "Double Ka Meetha", "Rice Kheer", "Seviyan Kheer", "Phirni", "Fruit Trifle", "Custard", "Brownie w/ Ice Cream", "Hot Chocolate Fudge", "Jalebi Rabri", "Malpua Rabri", "Angoori Rasmalai", "Cham Cham", "Sandesh", "Mysore Pak", "Fruit Cream", "Chocolate Mousse", "Souffle", "Tart", "Pastry"],
+  refreshments: ["Masala Tea", "Coffee", "Black Coffee", "Green Tea", "Jasmine Tea", "Paan (Meetha)", "Paan (Sada)", "Banarasi Paan", "Calcutta Paan", "Mukhwas", "Saunf", "Jaggery (Gud)", "Peanuts (Salted)", "Roasted Chana", "Cashewnuts", "Almonds", "Mint Chocolates"]
+};
+
+const THEMES = {
+  regalBlue: { name: "Regal Blue", bg: "#0f172a", text: "#fef3c7", accent: "#fbbf24", desc: "Classic Mess Night" },
+  armyOlive: { name: "Army Olive", bg: "#4b5320", text: "#ffffff", accent: "#eab308", desc: "Operational/Field" },
+  victorian: { name: "Victorian", bg: "#fefce8", text: "#1c1917", accent: "#44403c", desc: "Parchment Formal" },
+  camo: { name: "Tactical Camo", bg: "#292524", text: "#dcfce7", accent: "#78716c", desc: "Combat Style" },
+  contemporary: { name: "Contemporary", bg: "#ffffff", text: "#1e293b", accent: "#3b82f6", desc: "Modern Gradient" },
+};
+
+const FONTS = [
+  // Standard Web/System Fonts
+  { id: 'serif', name: 'Times New Roman' },
+  { id: 'sans', name: 'Helvetica / Arial' },
+  { id: 'mono', name: 'Stencil (Army)' },
+  { id: 'cursive', name: 'Calligraphy' },
+  { id: 'hand', name: 'Handwritten' },
+  { id: 'georgia', name: 'Georgia (Serif)' },
+  { id: 'verdana', name: 'Verdana (Sans)' },
+  { id: 'courier', name: 'Courier New (Mono)' },
+  { id: 'brush', name: 'Brush Script (Cursive)' },
+  { id: 'impact', name: 'Impact (Bold)' },
+  
+  // Google Fonts (Creative & Requested)
+  { id: 'merriweather', name: 'Merriweather (Classic Serif)' },
+  { id: 'opensans', name: 'Open Sans (Modern Sans)' },
+  { id: 'pinyon', name: 'Pinyon Script (Elegant)' },
+  { id: 'allura', name: 'Allura (Calligraphic)' },
+  { id: 'cinzel', name: 'Cinzel (Classical)' },
+  { id: 'playfair', name: 'Playfair Display (Elegant)' },
+  { id: 'greatvibes', name: 'Great Vibes (Formal)' },
+  { id: 'montserrat', name: 'Montserrat (Modern)' },
+  { id: 'lato', name: 'Lato (Clean)' }
+];
+
+// --- CLEAN BORDER STYLES ---
+const BORDER_STYLES = [
+  { id: 'solid', name: 'Solid Single' },
+  { id: 'double', name: 'Double Line' },
+  { id: 'dashed', name: 'Dashed' },
+  { id: 'dotted', name: 'Dotted' },
+  { id: 'thick-thin', name: 'Thick-Thin' },
+  { id: 'thin-thick', name: 'Thin-Thick' },
+  { id: 'triple', name: 'Triple Line' },
+  { id: 'art-deco', name: 'Art Deco (Double)' },
+  
+  // ROBUST FULL BORDERS
+  { id: 'classic-frame', name: 'Classic Menu Frame' },
+  { id: 'certificate', name: 'Certificate Style' },
+  { id: 'double-gold', name: 'Double Gold Band' },
+  
+  { id: 'custom', name: 'Upload Custom' }
+];
+
+const SEPARATOR_STYLES = [
+  { id: 'line', name: 'Solid Line' },
+  { id: 'stars', name: 'Stars (★)' },
+  { id: 'swords', name: 'Swords (⚔)' },
+  { id: 'anchor', name: 'Anchor (⚓)' },
+  { id: 'fleur', name: 'Fleur-de-lis (⚜)' },
+  { id: 'diamond', name: 'Diamonds (♦)' },
+  { id: 'wavy', name: 'Wavy (~)' },
+  { id: 'dots', name: 'Dots' },
+  { id: 'dash', name: 'Dashes' },
+  { id: 'double', name: 'Double' },
+  { id: 'custom', name: 'Custom Upload' },
+  { id: 'none', name: 'None' }
+];
+
+export default function MessCommandCenter() {
+  const [activeTab, setActiveTab] = useState('details');
+  const [showAlcohol, setShowAlcohol] = useState(true);
+  
+  // HTML2Canvas Loader State
+  const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
+
+  // Load html2canvas dynamically
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+    script.async = true;
+    script.onload = () => setHtml2canvasLoaded(true);
+    document.body.appendChild(script);
+    return () => {
+      if(document.body.contains(script)) document.body.removeChild(script);
+    }
+  }, []);
+
+  const [eventData, setEventData] = useState({
+    unit: '18 BN BSF',
+    eventType: 'Bada Khana',
+    date: '',
+    time: '20:00',
+    venue: 'Officers Mess',
+    host: 'The Commandant',
+    inviteLine1: 'requests the pleasure of the company of',
+    inviteLine2: '',
+    rsvp: 'Mess Secy',
+    invitee: '',
+    dress: 'Lounge Suit / Saree'
+  });
+
+  const [selectedMenu, setSelectedMenu] = useState({});
+  const [cocktailModal, setCocktailModal] = useState(null);
+
+  // --- UPDATED DESIGN STATE ---
+  const [design, setDesign] = useState({
+    theme: 'regalBlue', 
+    fonts: { main: 'cinzel', sub: 'montserrat', items: 'playfair' },
+    fontSizes: { main: 4, sub: 1.1, items: 0.9 }, 
+    textColors: { main: '#fef3c7', sub: '#fef3c7', items: '#fef3c7' }, // Default for Regal Blue
+    fontStyles: {
+      main: { bold: true, italic: false },
+      sub: { bold: false, italic: false },
+      items: { bold: false, italic: false }
+    },
+    background: { type: 'solid', color: '#0f172a', gradientType: 'linear', gradientDirection: 'to right bottom', gradientStart: '#1e293b', gradientEnd: '#0f172a' },
+    logo: { show: true, src: null, size: 96, position: 'top-center', opacity: 100 },
+    border: { type: 'classic-frame', size: 8, color: '#fbbf24', useGradient: false, gradientStart: '#d4af37', gradientEnd: '#f0e68c', customSrc: null },
+    separator: { type: 'line', color: '#fbbf24', size: 1, customSrc: null },
+    spacing: 2
+  });
+
+  // --- HANDLERS ---
+  const toggleMenuItem = (category, item) => {
+    setSelectedMenu(prev => {
+      const list = prev[category] || [];
+      return list.includes(item) 
+        ? { ...prev, [category]: list.filter(i => i !== item) }
+        : { ...prev, [category]: [...list, item] };
+    });
+  };
+
+  const addCustomItem = (category, value) => {
+    if(!value.trim()) return;
+    toggleMenuItem(category, value.trim());
+  };
+
+  const applyTheme = (themeKey) => {
+    const t = THEMES[themeKey];
+    setDesign(prev => ({
+      ...prev, theme: themeKey,
+      background: { ...prev.background, type: 'solid', color: t.bg },
+      border: { ...prev.border, color: t.accent },
+      separator: { ...prev.separator, color: t.accent },
+      textColors: { main: t.text, sub: t.text, items: t.text } // Auto-update text colors
+    }));
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) setDesign(prev => ({...prev, logo: {...prev.logo, src: URL.createObjectURL(file)}}));
+  };
+  const handleBorderUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) setDesign(prev => ({...prev, border: {...prev.border, type: 'custom', customSrc: URL.createObjectURL(file)}}));
+  };
+  const handleSeparatorUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) setDesign(prev => ({...prev, separator: {...prev.separator, type: 'custom', customSrc: URL.createObjectURL(file)}}));
+  };
+
+  const handleDownloadImage = async (format) => {
+    if (!html2canvasLoaded || !printRef.current) return;
+    
+    // Temporarily remove shadow for clean capture
+    const element = printRef.current;
+    const originalShadow = element.style.boxShadow;
+    element.style.boxShadow = 'none';
+
+    try {
+      const canvas = await window.html2canvas(element, {
+        scale: 2, // 2x scale for Retina/High Quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: null 
+      });
+      
+      const link = document.createElement('a');
+      link.download = `Menu-${eventData.eventType.replace(/\s+/g, '-')}.${format}`;
+      link.href = canvas.toDataURL(`image/${format === 'jpg' ? 'jpeg' : 'png'}`);
+      link.click();
+    } catch (e) {
+      console.error("Export failed", e);
+    } finally {
+      element.style.boxShadow = originalShadow;
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `*INVITATION*\n\n*Event:* ${eventData.eventType}\n*Host:* ${eventData.host}\n*Date:* ${eventData.date}\n*Time:* ${eventData.time}\n*Venue:* ${eventData.venue}\n\n*RSVP:* ${eventData.rsvp}\n\n(Please see attached image for menu details)`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const printRef = useRef();
+  const handlePrint = () => {
+    const content = printRef.current.innerHTML;
+    const printWindow = window.open('', '', 'height=800,width=1000');
+    // Inject fonts into print window - Added Pinyon Script, Allura, Merriweather, Open Sans
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400&family=Merriweather:wght@300;700&family=Montserrat:wght@300;500;700&family=Open+Sans:wght@400;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">`;
+    printWindow.document.write(`<html><head><title>Mess Invite</title>${fontLink}<script src="https://cdn.tailwindcss.com"></script><style>@page { size: A4; margin: 0; } body { margin: 0; -webkit-print-color-adjust: exact; }</style></head><body>${content}</body></html>`);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-slate-800">
+      {/* Load Fonts in Main App */}
+      <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400&family=Merriweather:wght@300;700&family=Montserrat:wght@300;500;700&family=Open+Sans:wght@400;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+      {/* HEADER - REBRANDED */}
+      <header className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-wider uppercase">Menu Designer</h1>
+              <p className="text-xs text-yellow-500 tracking-widest">v12.0</p>
+            </div>
+          </div>
+          <nav className="flex bg-slate-800 rounded-lg p-1 overflow-x-auto max-w-full">
+            {[{id:'details',label:'1. Event',icon:Calendar},{id:'menu',label:'2. Menu',icon:Utensils},{id:'design',label:'3. Design',icon:Sliders},{id:'preview',label:'4. Preview',icon:Printer}].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-yellow-600 text-white font-bold shadow-lg' : 'text-slate-400 hover:bg-slate-700'}`}>
+                <tab.icon className="w-4 h-4" /><span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-[1600px] mx-auto w-full p-4 sm:p-6">
         
-        .bg-parchment { background-color: #fdfbf7; background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); }
-        .bg-chalkboard { background-color: #2b2b2b; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
-    <div id="root"></div>
+        {/* DETAILS TAB */}
+        {activeTab === 'details' && (
+           <div className="max-w-4xl mx-auto bg-white rounded-xl shadow border p-8 animate-in slide-in-from-bottom-4">
+             <h2 className="text-2xl font-bold text-slate-800 mb-6 flex gap-2"><Settings className="w-6 h-6 text-yellow-600" /> Event Details</h2>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <InputGroup label="Unit Name" value={eventData.unit} onChange={e => setEventData({...eventData, unit: e.target.value})} />
+               <InputGroup label="Event Type" value={eventData.eventType} onChange={e => setEventData({...eventData, eventType: e.target.value})} />
+               <InputGroup label="Date" type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} />
+               <InputGroup label="Time" type="time" value={eventData.time} onChange={e => setEventData({...eventData, time: e.target.value})} />
+               <InputGroup label="Venue" value={eventData.venue} onChange={e => setEventData({...eventData, venue: e.target.value})} />
+               <InputGroup label="Host" value={eventData.host} onChange={e => setEventData({...eventData, host: e.target.value})} />
+               <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                 <InputGroup label="Invite Line 1" value={eventData.inviteLine1} onChange={e => setEventData({...eventData, inviteLine1: e.target.value})} placeholder="requests the pleasure of the company of" />
+                 <InputGroup label="Invite Line 2 (Optional)" value={eventData.inviteLine2} onChange={e => setEventData({...eventData, inviteLine2: e.target.value})} placeholder="e.g. on the occasion of..." />
+               </div>
+               <InputGroup label="Invitee (Optional)" value={eventData.invitee} onChange={e => setEventData({...eventData, invitee: e.target.value})} />
+               <InputGroup label="RSVP" value={eventData.rsvp} onChange={e => setEventData({...eventData, rsvp: e.target.value})} />
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dress Code</label>
+                  <div className="flex gap-2">
+                     <select className="border rounded p-2 text-sm flex-1" value={eventData.dress} onChange={e => setEventData({...eventData, dress: e.target.value})}>
+                        <option>Lounge Suit / Saree</option><option>Civvies / Smart Casual</option><option>Uniform / Saree</option><option>Ceremonial</option><option>Combat Dress</option><option>Black Tie</option>
+                     </select>
+                     <input type="text" placeholder="Custom..." className="border rounded p-2 text-sm flex-1" onChange={e => setEventData({...eventData, dress: e.target.value})} />
+                  </div>
+               </div>
+             </div>
+             <div className="mt-8 flex justify-end"><button onClick={() => setActiveTab('menu')} className="bg-slate-900 text-white px-6 py-2 rounded hover:bg-slate-800">Next: Menu</button></div>
+           </div>
+        )}
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        
-        // --- ICONS (Embedded directly) ---
-        const IconBase = ({ children, size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
-        );
-        const ChefHat = (props) => <IconBase {...props}><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 9.08 0A5.11 5.11 0 0 1 18.59 6 4 4 0 0 1 20 13.87V21H6Z"/><path d="M6 17h14"/></IconBase>;
-        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
-        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
-        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
-        const Share2 = (props) => <IconBase {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></IconBase>;
-        const Plus = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
+        {/* MENU TAB */}
+        {activeTab === 'menu' && (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-in slide-in-from-bottom-4">
+            <div className="xl:col-span-3 space-y-4">
+               {/* BAR */}
+               {showAlcohol && (
+                 <MenuAccordion title="Bar (Spirits & Cocktails)" icon={Wine} count={Object.keys(selectedMenu).filter(k=>k.startsWith('bar_') || k === 'cocktails').reduce((a,k)=>a+selectedMenu[k].length,0)}>
+                    <SubSection title="Single Malts"><CheckboxGrid items={MENU_DB.bar.singleMalt} selected={selectedMenu['bar_sm']} category="bar_sm" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Premium Blended"><CheckboxGrid items={MENU_DB.bar.premiumBlended} selected={selectedMenu['bar_bl']} category="bar_bl" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Brandies"><CheckboxGrid items={MENU_DB.bar.brandy} selected={selectedMenu['bar_br']} category="bar_br" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Rum"><CheckboxGrid items={MENU_DB.bar.rum} selected={selectedMenu['bar_rum']} category="bar_rum" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Vodka"><CheckboxGrid items={MENU_DB.bar.vodka} selected={selectedMenu['bar_vodka']} category="bar_vodka" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Gin"><CheckboxGrid items={MENU_DB.bar.gin} selected={selectedMenu['bar_gin']} category="bar_gin" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Beer & Ales"><CheckboxGrid items={MENU_DB.bar.beer} selected={selectedMenu['bar_beer']} category="bar_beer" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                    <SubSection title="Cocktails"><CocktailGrid items={COCKTAIL_DB.filter(c=>c.type!=='mocktail')} selected={selectedMenu['cocktails']} toggle={toggleMenuItem} onInfo={setCocktailModal} onCustom={addCustomItem} /></SubSection>
+                 </MenuAccordion>
+               )}
 
-        // --- DATABASE ---
-        const MESS_MENU_DB = {
-            starters_veg: [
-                "Paneer Tikka Sufiyana", "Hara Bhara Kebab", "Crispy Corn & Spinach Balls", "Tandoori Mushroom", "Dahi Ke Shole", 
-                "Veg Gold Coin", "Cheese Cherry Pineapple", "Achari Paneer Tikka", "Veg Spring Rolls", "Honey Chilli Potato",
-                "Corn Salt & Pepper", "Veg Shammi Kebab", "Beetroot Cutlet", "Stuffed Tandoori Aloo", "Paneer Malai Tikka",
-                "Cajun Spiced Potato", "Veg Seekh Kebab", "Mushroom Duplex", "Crispy Lotus Stem", "Cheese Balls",
-                "Gobi Manchurian Dry", "Babycorn Fritters", "Paneer 65", "Veg Lollipop", "Rajma Galouti",
-                "Kurkuri Bhindi", "Moong Dal Bhajiya", "Soya Chaap Tikka", "Falafel with Hummus", "Bruschetta Tomato Basil",
-                "Mini Samosa", "Khandvi", "Dhokla Bites", "Aloo Nazakat", "Paneer Shashlik", "Vegetable Tempura",
-                "Corn Cheese Kebab", "Spinach Cheese Cigars", "Veg Momos (Fried/Steamed)", "Mexican Tacos (Mini)", "Zucchini Fritters"
-            ],
-            starters_nonveg: [
-                "Chicken Tikka", "Mutton Seekh Kebab", "Fish Amritsari", "Chicken 65", "Galouti Kebab", 
-                "Chicken Malai Tikka", "Tangri Kebab", "Fish Fingers", "Golden Fried Prawns", "Chicken Lollipop",
-                "Mutton Shammi Kebab", "Chilli Chicken Dry", "Prawns Koliwada", "Apollo Fish", "Chicken Reshmi Kebab",
-                "Mutton Burra", "Tandoori Chicken (Half)", "Lemon Chicken Dry", "Chicken Pakora", "Fish Orly",
-                "Mutton Kola Urundai", "Pathar Ka Gosht", "Chicken Ghee Roast (Dry)", "Egg 65", "Devilled Eggs",
-                "Chicken Satay", "Peri Peri Wings", "Drums of Heaven", "Fish Tikka Ajwaini", "Mutton Pepper Fry",
-                "Chicken Seekh Gilafi", "Prawns Tempura", "Kalmi Kebab", "Bhatti Ka Murgh", "Chicken Majestic",
-                "Lamb Chops", "Fish Cakes", "Chicken Nuggets (Homemade)", "Chapli Kebab", "Squid Rings (Calamari)", "Achari Fish Tikka"
-            ],
-            main_veg: [
-                "Paneer Butter Masala", "Dal Makhani", "Kadhai Paneer", "Malai Kofta", "Mixed Vegetable Jalfrezi", 
-                "Palak Paneer", "Mushroom Do Pyaza", "Dum Aloo Kashmiri", "Bhindi Masala", "Baingan Bharta", 
-                "Dal Tadka (Yellow)", "Chana Masala", "Navratan Korma", "Vegetable Au Gratin", "Baked Vegetables", 
-                "Paneer Lababdar", "Methi Malai Matar", "Aloo Gobi Adraki", "Vegetable Kolhapuri", "Corn Palak", 
-                "Shahi Paneer", "Veg Manchurian Gravy", "Thai Green Curry (Veg)", "Stuffed Capsicum", "Jeera Aloo",
-                "Sarson Ka Saag", "Rajma Masala", "Kadhi Pakora", "Paneer Pasanda", "Vegetable Stew", 
-                "Diwani Handi", "Tawa Sabzi", "Bagara Baingan", "Lauki Kofta", "Matar Mushroom", 
-                "Vegetable Lasagna", "Pasta Alfredo", "Ratatouille", "Broccoli Almondine", "Spinach Corn Casserole",
-                "Gatte Ki Sabzi", "Ker Sangri", "Undhiyu", "Avial", "Poriyal"
-            ],
-            main_nonveg: [
-                "Butter Chicken", "Mutton Rogan Josh", "Chicken Curry (Home Style)", "Fish Curry (Goan)", "Laal Maas", 
-                "Mutton Do Pyaza", "Chicken Chettinad", "Kadai Chicken", "Mutton Korma", "Fish Moilee", 
-                "Prawn Malai Curry", "Chicken Korma", "Mutton Rara", "Egg Curry", "Chicken Lababdar", 
-                "Bhuna Gosht", "Railway Mutton Curry", "Chicken Stew", "Fish Tikka Masala", "Prawns Balchao", 
-                "Chicken Tikka Masala", "Mutton Yakhni", "Chicken Vindaloo", "Keema Matar", "Nihari", 
-                "Roast Chicken with Rosemary", "Grilled Fish Lemon Butter", "Chicken Stroganoff", "Shepherd's Pie", "Lamb Stew",
-                "Chicken Manchurian Gravy", "Kung Pao Chicken", "Chilli Fish Gravy", "Thai Red Curry (Chicken)", "Chicken Cafreal",
-                "Kosha Mangsho", "Methi Chicken", "Saag Wala Meat", "Handi Chicken", "Murgh Musallam", 
-                "Mutton Beliram", "Gongura Chicken", "Fish Pulusu", "Crab Curry", "Pork Vindaloo (Optional)"
-            ],
-            rice: [
-                "Jeera Rice", "Peas Pulao", "Vegetable Biryani", "Hyderabadi Chicken Biryani", "Mutton Biryani (Lucknowi)", 
-                "Steamed Basmati Rice", "Kashmiri Pulao", "Egg Biryani", "Fried Rice (Veg/Chicken)", "Schezwan Rice", 
-                "Lemon Rice", "Curd Rice", "Ghee Rice", "Saffron Rice", "Brown Rice"
-            ],
-            breads: [
-                "Tandoori Roti", "Butter Naan", "Garlic Naan", "Missi Roti", "Laccha Paratha", 
-                "Kulcha (Paneer/Aloo)", "Roomali Roti", "Pudina Paratha", "Bread Basket (Dinner Rolls)", "Bhature", "Puri"
-            ],
-            soups: [
-                "Cream of Tomato", "Sweet Corn (Veg/Chicken)", "Hot & Sour", "Manchow", "Mulligatawny Soup", 
-                "Lemon Coriander", "Cream of Mushroom", "Minestrone", "Yakhni Shorba", "Tamatar Dhaniya Shorba", 
-                "French Onion Soup", "Chicken Clear Soup"
-            ],
-            salads: [
-                "Green Salad", "Russian Salad", "Waldorf Salad", "Caesar Salad", "Kachumber Salad", 
-                "Sprouted Moong Salad", "Macaroni Salad", "Coleslaw", "Aloo Chana Chat", "Fruit Salad", 
-                "Kimchi", "Greek Salad", "Pasta Salad", "Laccha Onion"
-            ],
-            desserts: [
-                "Gulab Jamun", "Gajar Ka Halwa", "Moong Dal Halwa", "Rasmalai", "Ice Cream (Vanilla/Strawberry/Chocolate)", 
-                "Fruit Trifle", "Caramel Custard", "Chocolate Brownie with Ice Cream", "Shahi Tukda", "Kheer (Rice/Seviyan)", 
-                "Fruit Cream", "Soufflé (Mango/Chocolate)", "Apple Pie", "Jalebi with Rabri", "Tipsy Pudding", 
-                "Angoori Rabri", "Chocolate Mousse", "Cheesecake", "Kulfi Falooda", "Phirni", 
-                "Date Pancake", "Baked Yoghurt", "Tiramisu", "Cassata", "Hot Chocolate Fudge"
-            ],
-            cocktails: [
-                { name: "The Gunner", recipe: "Ginger Ale, Ginger Beer, Angostura Bitters", glass: "Highball", tips: "The quintessential mess drink. Non-alcoholic version exists." },
-                { name: "Old Fashioned", recipe: "Whiskey, Bitters, Sugar Cube, Water", glass: "Old Fashioned", tips: "Stir well with ice. Garnish with orange peel." },
-                { name: "Mojito", recipe: "White Rum, Mint, Lime, Soda, Sugar", glass: "Highball", tips: "Muddle mint gently." },
-                { name: "Bloody Mary", recipe: "Vodka, Tomato Juice, Tabasco, Worcestershire, Lemon", glass: "Highball", tips: "Garnish with celery stick." },
-                { name: "LIIT", recipe: "Vodka, Rum, Gin, Tequila, Triple Sec, Cola", glass: "Highball", tips: "Potent. Serve with plenty of ice." },
-                { name: "Whiskey Sour", recipe: "Whiskey, Lemon Juice, Sugar, Egg White (opt)", glass: "Old Fashioned", tips: "Shake dry first if using egg white." },
-                { name: "Gin & Tonic", recipe: "Gin, Tonic Water, Lime", glass: "Balloon/Highball", tips: "Use good quality tonic. Cucumber garnish works well." },
-                { name: "Screwdriver", recipe: "Vodka, Orange Juice", glass: "Highball", tips: "Simple and classic." },
-                { name: "Tom Collins", recipe: "Gin, Lemon Juice, Sugar, Soda", glass: "Highball", tips: "Refreshing summer drink." },
-                { name: "Margarita", recipe: "Tequila, Triple Sec, Lime Juice", glass: "Coupe", tips: "Salt rim is essential." },
-                { name: "Cosmopolitan", recipe: "Vodka, Triple Sec, Cranberry, Lime", glass: "Martini", tips: "Shake until chilled." },
-                { name: "Manhattan", recipe: "Rye Whiskey, Sweet Vermouth, Bitters", glass: "Coupe", tips: "Garnish with cherry." },
-                { name: "Martini (Dry)", recipe: "Gin, Dry Vermouth", glass: "Martini", tips: "Shaken or stirred. Olive or twist." },
-                { name: "Daiquiri", recipe: "White Rum, Lime Juice, Syrup", glass: "Coupe", tips: "Can be frozen or shaken." },
-                { name: "Espresso Martini", recipe: "Vodka, Coffee Liqueur, Espresso", glass: "Martini", tips: "Garnish with 3 coffee beans." },
-                { name: "Pina Colada", recipe: "Rum, Coconut Cream, Pineapple Juice", glass: "Hurricane", tips: "Blend with ice." },
-                { name: "Mai Tai", recipe: "Rum (Light & Dark), Lime, Orgeat, Orange Curacao", glass: "Old Fashioned", tips: "Tiki classic." },
-                { name: "Planter's Punch", recipe: "Dark Rum, Orange, Pineapple, Lemon, Grenadine", glass: "Highball", tips: "Fruity but strong." },
-                { name: "Moscow Mule", recipe: "Vodka, Ginger Beer, Lime", glass: "Copper Mug", tips: "The mug is iconic." },
-                { name: "Negroni", recipe: "Gin, Campari, Sweet Vermouth", glass: "Old Fashioned", tips: "Equal parts. Bitter aperitif." },
-                { name: "Black Russian", recipe: "Vodka, Coffee Liqueur", glass: "Old Fashioned", tips: "Serve over ice." },
-                { name: "Mint Julep", recipe: "Bourbon, Mint, Sugar, Water", glass: "Julep Cup", tips: "Crushed ice is mandatory." },
-                { name: "Sangria", recipe: "Red Wine, Chopped Fruit, Brandy, OJ", glass: "Wine Glass", tips: "Let sit for hours before serving." },
-                { name: "Tequila Sunrise", recipe: "Tequila, Orange Juice, Grenadine", glass: "Highball", tips: "Pour grenadine last for sunrise effect." },
-                { name: "Cuba Libre", recipe: "Rum, Cola, Lime", glass: "Highball", tips: "Basically Rum & Coke with lime." },
-                { name: "Gimlet", recipe: "Gin, Lime Cordial", glass: "Coupe", tips: "Sharp and sweet." }
-            ],
-            mocktails: [
-                { name: "Virgin Mojito", recipe: "Mint, Lemon, Sugar, Soda", glass: "Highball", tips: "Refreshing classic." },
-                { name: "Shirley Temple", recipe: "Ginger Ale, Grenadine", glass: "Highball", tips: "Garnish with a cherry." },
-                { name: "Fruit Punch", recipe: "Mixed Fruit Juices, Ice Cream (opt)", glass: "Hurricane", tips: "Crowd pleaser." },
-                { name: "Blue Lagoon", recipe: "Blue Curacao Syrup, Sprite, Lemon", glass: "Highball", tips: "Visual appeal." },
-                { name: "Cinderella", recipe: "Lemon, Orange, Pineapple Juice, Grenadine, Soda", glass: "Highball", tips: "Fruity tang." },
-                { name: "Virgin Mary", recipe: "Tomato Juice, Spices, Lemon", glass: "Highball", tips: "Spicy kick without alcohol." },
-                { name: "Mint Lemonade", recipe: "Lemon, Mint, Sugar, Water", glass: "Highball", tips: "Summer staple." },
-                { name: "Peach Iced Tea", recipe: "Black Tea, Peach Syrup", glass: "Highball", tips: "Serve chilled." },
-                { name: "Chapman", recipe: "Fanta, Sprite, Angostura, Grenadine, Cucumber", glass: "Mug", tips: "Nigerian classic popular in messes." },
-                { name: "Aam Panna", recipe: "Raw Mango, Spices", glass: "Old Fashioned", tips: "Traditional Indian cooler." },
-                { name: "Jaljeera", recipe: "Jaljeera powder, Water, Boondi", glass: "Highball", tips: "Digestive." },
-                { name: "Pink Lady", recipe: "Strawberry Crush, Milk/Cream", glass: "Fancy", tips: "Sweet treat." },
-                { name: "Mango Mule", recipe: "Mango Puree, Ginger Beer, Lime", glass: "Copper Mug", tips: "Twist on the mule." },
-                { name: "Pineapple Cobbler", recipe: "Pineapple Juice, Strawberry Juice, Soda", glass: "Highball", tips: "Sweet and sour." },
-                { name: "Virgin Pina Colada", recipe: "Pineapple Juice, Coconut Milk", glass: "Hurricane", tips: "Tropical vibes." },
-                { name: "Safe Sex on the Beach", recipe: "Cranberry, Grapefruit, Peach Nectar", glass: "Highball", tips: "Fruity mix." },
-                { name: "Watermelon Mojito", recipe: "Watermelon chunks, Mint, Soda", glass: "Highball", tips: "Fresh fruit is key." },
-                { name: "Kiwi Margerita (Virgin)", recipe: "Kiwi Crush, Lime, Sugar rim", glass: "Coupe", tips: "Tangy." },
-                { name: "Italian Smooch", recipe: "Ginger Ale, Lime, Cola splash", glass: "Highball", tips: "Fizzy delight." },
-                { name: "Masala Coke", recipe: "Cola, Chaat Masala, Lemon", glass: "Highball", tips: "Desi twist." },
-                { name: "Green Apple Soda", recipe: "Green Apple Syrup, Soda", glass: "Highball", tips: "Crisp taste." },
-                { name: "Lassi (Sweet/Salted)", recipe: "Yoghurt, Water, Spices", glass: "Tall Glass", tips: "Traditional." },
-                { name: "Thandai", recipe: "Milk, Nuts, Saffron", glass: "Tall Glass", tips: "Festive drink." },
-                { name: "Cold Coffee", recipe: "Coffee, Milk, Sugar, Ice Cream", glass: "Tall Glass", tips: "Add chocolate sauce." },
-                { name: "Fresh Lime Soda", recipe: "Soda, Lime, Sugar/Salt", glass: "Highball", tips: "The standard." }
-            ],
-            spirits: [
-                "Old Monk XXX Rum", "Bacardi White Rum", "Smirnoff Vodka", "Absolut Vodka", "Grey Goose", 
-                "Gordon's Gin", "Bombay Sapphire", "Teacher's Highland Cream", "Black Dog", "Chivas Regal (12 YO)", 
-                "Johnnie Walker Black Label", "Johnnie Walker Red Label", "Glenfiddich", "Glenlivet", "Jack Daniel's", 
-                "Jim Beam", "Antiquity Blue", "Blenders Pride", "Royal Challenge", "Signature", "Kingfisher Beer", "Heineken", "Corona"
-            ]
-        };
+               <MenuAccordion title="Mocktails (50+ Options)" icon={CupSoda} count={selectedMenu['mocktails']?.length||0}>
+                  <SubSection title="Mocktail Selection"><CocktailGrid items={COCKTAIL_DB.filter(c=>c.type==='mocktail')} selected={selectedMenu['mocktails']} toggle={toggleMenuItem} onInfo={setCocktailModal} onCustom={addCustomItem} category="mocktails" /></SubSection>
+               </MenuAccordion>
 
-        const FONTS = [
-            { name: "Classic Serif", class: "font-['Playfair_Display']" },
-            { name: "Modern Sans", class: "font-['Montserrat']" },
-            { name: "Elegant Script", class: "font-['Great_Vibes']" },
-            { name: "Cinzel (Roman)", class: "font-['Cinzel']" },
-            { name: "Handwritten", class: "font-['Patrick_Hand']" }
-        ];
+               <MenuAccordion title="Juices, Soft Drinks & Hot Bevs" icon={Coffee} count={(selectedMenu['juices']?.length||0)+(selectedMenu['hotDrinks']?.length||0)+(selectedMenu['softDrinks']?.length||0)}>
+                  <SubSection title="Juices"><CheckboxGrid items={MENU_DB.beverages.juices} selected={selectedMenu['juices']} category="juices" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Hot Drinks (Coffee/Tea)"><CheckboxGrid items={MENU_DB.beverages.hotDrinks} selected={selectedMenu['hotDrinks']} category="hotDrinks" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Soft Drinks"><CheckboxGrid items={MENU_DB.beverages.softDrinks} selected={selectedMenu['softDrinks']} category="softDrinks" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+               </MenuAccordion>
 
-        const THEMES = [
-            { id: 'contemporary', name: 'Contemporary', bg: 'bg-white', border: 'border-modern-gradient', text: 'text-gray-800' },
-            { id: 'victorian', name: 'Victorian', bg: 'bg-parchment', border: 'border-victorian-1', text: 'text-[#5c4033]' },
-            { id: 'regal', name: 'Regal Blue', bg: 'bg-slate-900', border: 'border-double border-4 border-yellow-500', text: 'text-yellow-100' },
-            { id: 'chalkboard', name: 'Chalkboard', bg: 'bg-chalkboard', border: 'border-chalk', text: 'text-white font-patrick' },
-            { id: 'army', name: 'Olive Green', bg: 'bg-[#4b5320]', border: 'border-4 border-[#DAA520]', text: 'text-[#FFFDD0]' }
-        ];
+               <MenuAccordion title="After Meal Refreshments" icon={Coffee} count={selectedMenu['refresh']?.length||0}>
+                  <SubSection title="Paan & Mukhwas"><CheckboxGrid items={MENU_DB.refreshments} selected={selectedMenu['refresh']} category="refresh" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+               </MenuAccordion>
 
-        // --- COMPONENTS ---
+               <MenuAccordion title="Starters" icon={Utensils} count={(selectedMenu['start_v']?.length||0)+(selectedMenu['start_nv']?.length||0)}>
+                  <SubSection title="Vegetarian"><CheckboxGrid items={MENU_DB.starters.veg} selected={selectedMenu['start_v']} category="start_v" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Non-Vegetarian"><CheckboxGrid items={MENU_DB.starters.nonVeg} selected={selectedMenu['start_nv']} category="start_nv" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+               </MenuAccordion>
 
-        // 1. Modal for Recipes
-        const RecipeModal = ({ isOpen, onClose, item }) => {
-            if (!isOpen || !item) return null;
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in text-gray-800">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-2xl font-bold font-serif">{item.name}</h3>
-                            <button onClick={onClose}><X className="w-6 h-6 text-gray-500 hover:text-red-500" /></button>
-                        </div>
-                        <div className="space-y-3">
-                            <p><strong>Glass:</strong> {item.glass}</p>
-                            <p><strong>Ingredients:</strong> {item.recipe}</p>
-                            <div className="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-                                <span className="font-semibold text-yellow-800">Tip:</span> {item.tips}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
+               <MenuAccordion title="Soups, Salads & Accompaniments" icon={Utensils} count={0}>
+                  <SubSection title="Soups"><CheckboxGrid items={MENU_DB.soups} selected={selectedMenu['soups']} category="soups" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Salads"><CheckboxGrid items={MENU_DB.salads} selected={selectedMenu['salads']} category="salads" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Chutneys & Pickles"><CheckboxGrid items={MENU_DB.accompaniments.chutneys} selected={selectedMenu['chutneys']} category="chutneys" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Raita & Curd"><CheckboxGrid items={MENU_DB.accompaniments.raita} selected={selectedMenu['raita']} category="raita" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Papad"><CheckboxGrid items={MENU_DB.accompaniments.papad} selected={selectedMenu['papad']} category="papad" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+               </MenuAccordion>
 
-        // 2. Main App Component
-        const App = () => {
-            // State
-            const [step, setStep] = useState(1); // 1: Event Details, 2: Menu Selection, 3: Design & Preview
-            const [eventDetails, setEventDetails] = useState({
-                type: 'Regimental Dinner',
-                host: 'CO, 122 Bn',
-                date: new Date().toISOString().split('T')[0],
-                time: '1930 Hrs',
-                venue: "Officers' Mess",
-                dressCode: 'Lounge Suit / Saree',
-                inviteeType: 'With Lady'
-            });
-            const [menuSelection, setMenuSelection] = useState({
-                starters_veg: [], starters_nonveg: [], main_veg: [], main_nonveg: [],
-                rice: [], breads: [], soups: [], salads: [], desserts: [],
-                cocktails: [], mocktails: [], spirits: []
-            });
-            
-            // Custom Items State
-            const [customItems, setCustomItems] = useState(() => {
-                const initial = {};
-                Object.keys(MESS_MENU_DB).forEach(k => initial[k] = []);
-                return initial;
-            });
-            const [customInputs, setCustomInputs] = useState({});
+               <MenuAccordion title="Main Course" icon={Utensils} count={0}>
+                  <SubSection title="Veg Mains"><CheckboxGrid items={MENU_DB.mains.veg} selected={selectedMenu['mains_v']} category="mains_v" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Non-Veg Mains"><CheckboxGrid items={MENU_DB.mains.nonVeg} selected={selectedMenu['mains_nv']} category="mains_nv" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Rice & Biryani"><CheckboxGrid items={MENU_DB.rice} selected={selectedMenu['rice']} category="rice" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+                  <SubSection title="Breads"><CheckboxGrid items={MENU_DB.breads} selected={selectedMenu['breads']} category="breads" toggle={toggleMenuItem} onCustom={addCustomItem} /></SubSection>
+               </MenuAccordion>
 
-            const [design, setDesign] = useState({
-                theme: THEMES[1], // Default Victorian
-                fontTitle: FONTS[3],
-                fontBody: FONTS[0],
-                showLogo: true,
-                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/41/India_Army_Flag.svg", // Placeholder
-                teetotallerMode: false
-            });
-            const [recipeItem, setRecipeItem] = useState(null);
-            const previewRef = useRef(null);
+               <MenuAccordion title="Desserts" icon={Utensils} count={0}>
+                  <CheckboxGrid items={MENU_DB.desserts} selected={selectedMenu['desserts']} category="desserts" toggle={toggleMenuItem} onCustom={addCustomItem} />
+               </MenuAccordion>
+            </div>
+            <div className="xl:col-span-1">
+               <div className="bg-white p-4 rounded shadow border sticky top-24">
+                 <h3 className="font-bold mb-4">Quick Actions</h3>
+                 <button onClick={() => setShowAlcohol(!showAlcohol)} className={`w-full py-2 rounded mb-2 font-bold ${showAlcohol ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{showAlcohol ? 'Hide Alcohol' : 'Show Alcohol'}</button>
+                 <button onClick={() => setActiveTab('design')} className="w-full bg-slate-900 text-white py-3 rounded hover:bg-slate-800 font-bold">Open Design Studio</button>
+               </div>
+            </div>
+          </div>
+        )}
 
-            // Handlers
-            const handleDetailChange = (e) => setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
-            
-            const toggleMenuItem = (category, item) => {
-                const current = menuSelection[category];
-                const isSelected = category === 'cocktails' || category === 'mocktails' 
-                    ? current.some(i => i.name === item.name)
-                    : current.includes(item);
+        {/* DESIGN TAB */}
+        {activeTab === 'design' && (
+          <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)] animate-in slide-in-from-bottom-4">
+             <div className="col-span-4 xl:col-span-3 bg-white rounded-xl shadow-lg border overflow-y-auto p-4 space-y-6">
                 
-                let updated;
-                if (isSelected) {
-                    updated = category === 'cocktails' || category === 'mocktails'
-                        ? current.filter(i => i.name !== item.name)
-                        : current.filter(i => i !== item);
-                } else {
-                    updated = [...current, item];
-                }
-                setMenuSelection({ ...menuSelection, [category]: updated });
-            };
+                <DesignSection title="1. Global Themes" icon={Layout}>
+                   <div className="grid grid-cols-2 gap-2">
+                     {Object.entries(THEMES).map(([key, t]) => (
+                       <button key={key} onClick={() => applyTheme(key)} className={`p-2 text-left border rounded text-xs transition-all ${design.theme === key ? 'ring-2 ring-yellow-500 bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                         <div className="font-bold">{t.name}</div><div className="text-[10px] text-gray-500">{t.desc}</div>
+                       </button>
+                     ))}
+                   </div>
+                </DesignSection>
 
-            const handleAddCustom = (category) => {
-                const val = customInputs[category]?.trim();
-                if (!val) return;
-
-                // Check duplicates in DB or Custom
-                const isObj = ['cocktails', 'mocktails'].includes(category);
-                const existing = [...MESS_MENU_DB[category], ...customItems[category]];
-                
-                const exists = existing.some(i => {
-                    const iName = typeof i === 'object' ? i.name : i;
-                    return iName.toLowerCase() === val.toLowerCase();
-                });
-
-                if (exists) {
-                    alert("Item already exists!");
-                    return;
-                }
-
-                let newItem = val;
-                if (isObj) {
-                    newItem = { name: val, recipe: 'Custom Entry', glass: 'Standard', tips: 'Ask Chef' };
-                }
-
-                // Update Custom Items List
-                setCustomItems(prev => ({
-                    ...prev,
-                    [category]: [...prev[category], newItem]
-                }));
-
-                // Auto-select it
-                setMenuSelection(prev => ({
-                    ...prev,
-                    [category]: [...prev[category], newItem]
-                }));
-
-                // Clear input
-                setCustomInputs(prev => ({ ...prev, [category]: '' }));
-            };
-
-            const downloadImage = async () => {
-                if (!previewRef.current) return;
-                try {
-                    const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
-                    const link = document.createElement('a');
-                    link.download = `Menu-${eventDetails.type.replace(/\s+/g, '_')}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                } catch (err) {
-                    alert("Error generating image. Please try again.");
-                }
-            };
-            
-            const shareMenu = async () => {
-                 if (!previewRef.current) return;
-                 try {
-                     const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
-                     canvas.toBlob(async (blob) => {
-                        const file = new File([blob], "menu.png", { type: "image/png" });
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                files: [file],
-                                title: 'Mess Menu',
-                                text: `Menu for ${eventDetails.type}`
-                            });
-                        } else {
-                            alert("Sharing not supported on this browser/device. Please download instead.");
-                        }
-                     });
-                 } catch (err) {
-                     console.error(err);
-                 }
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col md:flex-row">
-                    {/* --- LEFT SIDEBAR / CONTROLS --- */}
-                    <div className="w-full md:w-1/3 lg:w-1/4 bg-slate-800 text-white flex flex-col h-screen sticky top-0 overflow-hidden shadow-2xl z-10">
-                        <div className="p-4 bg-slate-900 border-b border-slate-700 flex items-center justify-between">
-                            <h1 className="text-xl font-bold flex items-center gap-2"><ChefHat className="text-yellow-500"/> Menu Designer</h1>
-                            <span className="text-xs bg-yellow-600 px-2 py-1 rounded">122 Bn</span>
+                <DesignSection title="2. Typography & Sizing" icon={Type}>
+                   {['main', 'sub', 'items'].map(type => (
+                      <div key={type} className="mb-3 border-b pb-3 last:border-0 bg-gray-50 p-2 rounded">
+                        <label className="text-xs font-bold text-gray-700 capitalize mb-2 block border-b border-gray-200 pb-1">{type} Text Settings</label>
+                        <div className="flex flex-col gap-2">
+                           <div className="flex gap-2">
+                              <select className="w-2/3 text-xs p-1 border rounded" value={design.fonts[type]} onChange={e => setDesign(p => ({...p, fonts: {...p.fonts, [type]: e.target.value}}))}>{FONTS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+                              <input type="number" step="0.1" className="w-1/3 text-xs p-1 border rounded" value={design.fontSizes[type]} onChange={e => setDesign(p => ({...p, fontSizes: {...p.fontSizes, [type]: parseFloat(e.target.value)}}))} />
+                           </div>
+                           <div className="flex gap-2 items-center">
+                              <input type="color" className="h-6 w-8 cursor-pointer rounded border" value={design.textColors[type]} onChange={e => setDesign(p => ({...p, textColors: {...p.textColors, [type]: e.target.value}}))} title="Font Color" />
+                              <button onClick={() => updateFontStyle(type, 'bold')} className={`p-1 border rounded ${design.fontStyles[type].bold ? 'bg-slate-800 text-white' : 'bg-white'}`} title="Bold"><Bold className="w-3 h-3" /></button>
+                              <button onClick={() => updateFontStyle(type, 'italic')} className={`p-1 border rounded ${design.fontStyles[type].italic ? 'bg-slate-800 text-white' : 'bg-white'}`} title="Italic/Cursive"><Italic className="w-3 h-3" /></button>
+                           </div>
                         </div>
-                        
-                        {/* Navigation Steps */}
-                        <div className="flex bg-slate-700">
-                            <button onClick={() => setStep(1)} className={`flex-1 p-3 text-center text-sm ${step === 1 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>1. Details</button>
-                            <button onClick={() => setStep(2)} className={`flex-1 p-3 text-center text-sm ${step === 2 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>2. Food</button>
-                            <button onClick={() => setStep(3)} className={`flex-1 p-3 text-center text-sm ${step === 3 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>3. Design</button>
+                      </div>
+                   ))}
+                </DesignSection>
+
+                <DesignSection title="3. Background" icon={Palette}>
+                   <div className="space-y-3">
+                      <div className="flex gap-2">
+                         <button onClick={() => setDesign(p => ({...p, background: {...p.background, type: 'solid'}}))} className={`flex-1 py-1 text-xs border rounded ${design.background.type === 'solid' ? 'bg-slate-800 text-white' : ''}`}>Solid</button>
+                         <button onClick={() => setDesign(p => ({...p, background: {...p.background, type: 'gradient'}}))} className={`flex-1 py-1 text-xs border rounded ${design.background.type === 'gradient' ? 'bg-slate-800 text-white' : ''}`}>Gradient</button>
+                      </div>
+                      {design.background.type === 'solid' ? (
+                        <div className="flex items-center justify-between"><label className="text-xs font-bold">Color</label><input type="color" value={design.background.color} onChange={e => setDesign(p => ({...p, background: {...p.background, color: e.target.value}}))} className="h-8 w-full ml-2" /></div>
+                      ) : (
+                        <div className="space-y-2">
+                           <div className="grid grid-cols-2 gap-2">
+                              <div><label className="text-[10px]">Start</label><input type="color" className="w-full h-6" value={design.background.gradientStart} onChange={e => setDesign(p => ({...p, background: {...p.background, gradientStart: e.target.value}}))} /></div>
+                              <div><label className="text-[10px]">End</label><input type="color" className="w-full h-6" value={design.background.gradientEnd} onChange={e => setDesign(p => ({...p, background: {...p.background, gradientEnd: e.target.value}}))} /></div>
+                           </div>
+                           <div className="grid grid-cols-2 gap-2">
+                              <select className="text-xs p-1 border rounded" value={design.background.gradientType} onChange={e => setDesign(p => ({...p, background: {...p.background, gradientType: e.target.value}}))}><option value="linear">Linear</option><option value="radial">Radial</option></select>
+                              <select className="text-xs p-1 border rounded" value={design.background.gradientDirection} onChange={e => setDesign(p => ({...p, background: {...p.background, gradientDirection: e.target.value}}))}><option value="to right bottom">Diagonal</option><option value="to right">Horizontal</option><option value="to bottom">Vertical</option></select>
+                           </div>
                         </div>
+                      )}
+                   </div>
+                </DesignSection>
 
-                        {/* Scrollable Content Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                            
-                            {/* STEP 1: EVENT DETAILS */}
-                            {step === 1 && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Event Basics</h2>
-                                    <div>
-                                        <label className="text-xs text-slate-400">Function Type</label>
-                                        <select name="type" value={eventDetails.type} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1 focus:border-yellow-500 outline-none">
-                                            <option>Bada Khana</option>
-                                            <option>Regimental Dinner</option>
-                                            <option>Anniversary Dinner</option>
-                                            <option>At Home</option>
-                                            <option>Senior Officer Visit Lunch</option>
-                                            <option>Raising Day</option>
-                                            <option>Mess Night</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400">Date</label>
-                                        <input type="date" name="date" value={eventDetails.date} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className="text-xs text-slate-400">Time</label>
-                                            <input type="text" name="time" value={eventDetails.time} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-400">Venue</label>
-                                            <input type="text" name="venue" value={eventDetails.venue} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400">Dress Code</label>
-                                        <select name="dressCode" value={eventDetails.dressCode} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1">
-                                            <option>Lounge Suit / Saree</option>
-                                            <option>Formals / Saree / Salwar Kameez</option>
-                                            <option>6A / 6B</option>
-                                            <option>Civvies</option>
-                                            <option>Combats</option>
-                                            <option>Black Tie</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400">Host/Organiser</label>
-                                        <input type="text" name="host" value={eventDetails.host} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
-                                    </div>
-                                     <div>
-                                        <label className="text-xs text-slate-400">Invitee</label>
-                                        <select name="inviteeType" value={eventDetails.inviteeType} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1">
-                                            <option>With Lady</option>
-                                            <option>Stag</option>
-                                            <option>Family</option>
-                                        </select>
-                                    </div>
-                                    <button onClick={() => setStep(2)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded font-semibold mt-4">Next: Select Food</button>
-                                </div>
-                            )}
+                <DesignSection title="4. Unit Logo" icon={ImageIcon}>
+                   <div className="space-y-3">
+                      <div className="flex items-center justify-between"><span className="text-xs font-bold">Show Logo</span><input type="checkbox" checked={design.logo.show} onChange={e => setDesign(p => ({...p, logo: {...p.logo, show: e.target.checked}}))} /></div>
+                      <div className="flex gap-2 items-center">
+                         <label className="bg-gray-100 hover:bg-gray-200 cursor-pointer px-3 py-2 rounded border text-xs flex-1 text-center truncate">{design.logo.src ? 'Change File' : 'Upload File'}<input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} /></label>
+                         {design.logo.src && <button onClick={() => setDesign(p => ({...p, logo: {...p.logo, src: null}}))} className="text-red-500"><X className="w-4 h-4" /></button>}
+                      </div>
+                      {design.logo.show && (
+                        <>
+                          <div><label className="text-[10px] font-bold block mb-1">Placement</label><select className="w-full text-xs p-1 border rounded" value={design.logo.position} onChange={e => setDesign(p => ({...p, logo: {...p.logo, position: e.target.value}}))}><option value="top-center">Header Top (Center)</option><option value="top-left">Header (Left)</option><option value="watermark">Watermark (Center Page)</option></select></div>
+                          <div><label className="text-[10px] font-bold block mb-1">Size: {design.logo.size}px</label><input type="range" min="40" max="300" value={design.logo.size} onChange={e => setDesign(p => ({...p, logo: {...p.logo, size: parseInt(e.target.value)}}))} className="w-full" /></div>
+                        </>
+                      )}
+                   </div>
+                </DesignSection>
 
-                            {/* STEP 2: MENU SELECTION */}
-                            {step === 2 && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Menu Items</h2>
-                                    <p className="text-xs text-slate-400">Expand categories to select items.</p>
-                                    
-                                    {Object.entries(MESS_MENU_DB).map(([key, dbItems]) => {
-                                        // Combine DB items and Custom Items
-                                        const allItems = [...dbItems, ...customItems[key]];
+                <DesignSection title="5. Borders (CSS Based)" icon={Layout}>
+                   <div className="space-y-3">
+                      <div><label className="text-xs font-bold block mb-1">Style</label><select className="w-full text-xs p-1 border rounded" value={design.border.type} onChange={e => setDesign(p => ({...p, border: {...p.border, type: e.target.value}}))}>{BORDER_STYLES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                      {design.border.type === 'custom' ? (
+                         <div className="flex gap-2 items-center mt-2"><label className="bg-gray-100 hover:bg-gray-200 cursor-pointer px-3 py-2 rounded border text-xs flex-1 text-center truncate">{design.border.customSrc ? 'Change' : 'Upload'}<input type="file" accept="image/*" className="hidden" onChange={handleBorderUpload} /></label></div>
+                      ) : (
+                         <>
+                           <div className="flex items-center gap-2"><span className="text-xs">Gradient?</span><input type="checkbox" checked={design.border.useGradient} onChange={e => setDesign(p => ({...p, border: {...p.border, useGradient: e.target.checked}}))} />{!design.border.useGradient ? <input type="color" className="h-6 w-12" value={design.border.color} onChange={e => setDesign(p => ({...p, border: {...p.border, color: e.target.value}}))} /> : <div className="flex gap-1"><input type="color" className="h-6 w-8" value={design.border.gradientStart} onChange={e => setDesign(p => ({...p, border: {...p.border, gradientStart: e.target.value}}))} /><input type="color" className="h-6 w-8" value={design.border.gradientEnd} onChange={e => setDesign(p => ({...p, border: {...p.border, gradientEnd: e.target.value}}))} /></div>}</div>
+                           <div><label className="text-[10px] font-bold block mb-1">Size: {design.border.size}px</label><input type="range" min="1" max="50" value={design.border.size} onChange={e => setDesign(p => ({...p, border: {...p.border, size: parseInt(e.target.value)}}))} className="w-full" /></div>
+                         </>
+                      )}
+                   </div>
+                </DesignSection>
 
-                                        return (
-                                        <details key={key} className="group bg-slate-900 rounded border border-slate-700">
-                                            <summary className="flex cursor-pointer items-center justify-between p-3 font-medium text-slate-200 hover:bg-slate-800">
-                                                <span className="capitalize">{key.replace('_', ' ')}</span>
-                                                <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{menuSelection[key].length}</span>
-                                            </summary>
-                                            <div className="p-3 border-t border-slate-700">
-                                                <div className="max-h-60 overflow-y-auto mb-2">
-                                                    {allItems.map((item, idx) => {
-                                                        const itemName = typeof item === 'object' ? item.name : item;
-                                                        const isSelected = typeof item === 'object' 
-                                                            ? menuSelection[key].some(i => i.name === itemName)
-                                                            : menuSelection[key].includes(item);
-                                                        
-                                                        return (
-                                                            <div key={idx} className="flex items-center space-x-2 py-1 hover:bg-slate-800 rounded px-1">
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={isSelected}
-                                                                    onChange={() => toggleMenuItem(key, item)}
-                                                                    className="rounded text-yellow-600 focus:ring-yellow-500 bg-slate-700 border-slate-500"
-                                                                />
-                                                                <span className="text-sm text-slate-300 flex-1">{itemName}</span>
-                                                                {typeof item === 'object' && (
-                                                                    <button onClick={(e) => {e.preventDefault(); setRecipeItem(item);}} className="text-yellow-500 hover:text-white">
-                                                                        <Info size={14} />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                
-                                                {/* CUSTOM ADD FIELD */}
-                                                <div className="mt-2 flex gap-2 pt-2 border-t border-slate-700">
-                                                    <input 
-                                                        type="text" 
-                                                        value={customInputs[key] || ''}
-                                                        onChange={(e) => setCustomInputs({...customInputs, [key]: e.target.value})}
-                                                        placeholder="Add custom item..."
-                                                        className="flex-1 bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white placeholder-slate-500 focus:border-yellow-500 outline-none"
-                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddCustom(key)}
-                                                    />
-                                                    <button 
-                                                        onClick={() => handleAddCustom(key)}
-                                                        className="bg-yellow-600 text-white px-3 rounded hover:bg-yellow-500 transition-colors"
-                                                        title="Add Custom Item"
-                                                    >
-                                                        <Plus size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </details>
-                                    );
-                                    })}
-                                    <button onClick={() => setStep(3)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded font-semibold mt-4">Next: Design</button>
-                                </div>
-                            )}
-
-                            {/* STEP 3: DESIGN */}
-                            {step === 3 && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Design Studio</h2>
-                                    
-                                    <div>
-                                        <label className="text-xs text-slate-400">Visual Theme</label>
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                            {THEMES.map(t => (
-                                                <button 
-                                                    key={t.id}
-                                                    onClick={() => setDesign({...design, theme: t})}
-                                                    className={`p-2 text-xs rounded border ${design.theme.id === t.id ? 'border-yellow-500 bg-yellow-900/30' : 'border-slate-600 hover:bg-slate-800'}`}
-                                                >
-                                                    {t.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs text-slate-400">Header Font</label>
-                                        <select 
-                                            value={JSON.stringify(design.fontTitle)} 
-                                            onChange={(e) => setDesign({...design, fontTitle: JSON.parse(e.target.value)})}
-                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1"
-                                        >
-                                            {FONTS.map((f, i) => <option key={i} value={JSON.stringify(f)}>{f.name}</option>)}
-                                        </select>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-between py-2 border-t border-slate-700">
-                                        <span className="text-sm">Teetotaller Mode</span>
-                                        <button 
-                                            onClick={() => setDesign({...design, teetotallerMode: !design.teetotallerMode})}
-                                            className={`w-10 h-5 rounded-full relative ${design.teetotallerMode ? 'bg-green-600' : 'bg-slate-600'}`}
-                                        >
-                                            <div className={`absolute w-3 h-3 bg-white rounded-full top-1 transition-all ${design.teetotallerMode ? 'left-6' : 'left-1'}`}></div>
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-center justify-between py-2 border-t border-slate-700">
-                                        <span className="text-sm">Show Logo</span>
-                                        <input type="checkbox" checked={design.showLogo} onChange={() => setDesign({...design, showLogo: !design.showLogo})} className="rounded text-yellow-600"/>
-                                    </div>
-                                    
-                                    {design.showLogo && (
-                                        <div>
-                                             <label className="text-xs text-slate-400">Logo URL</label>
-                                             <input 
-                                                type="text" 
-                                                value={design.logoUrl} 
-                                                onChange={(e) => setDesign({...design, logoUrl: e.target.value})}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs mt-1"
-                                                placeholder="https://..."
-                                             />
-                                        </div>
-                                    )}
-
-                                    <div className="pt-4 flex gap-2">
-                                        <button onClick={downloadImage} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded flex items-center justify-center gap-2">
-                                            <Download size={16}/> Save IMG
-                                        </button>
-                                        <button onClick={shareMenu} className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded flex items-center justify-center gap-2">
-                                            <Share2 size={16}/> Share
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
+                <DesignSection title="6. Spacing & Separators" icon={Move}>
+                    <div className="space-y-4">
+                       <div><label className="text-xs font-bold block mb-1">Menu Separator</label><select className="w-full text-xs p-1 border rounded" value={design.separator.type} onChange={e => setDesign(p => ({...p, separator: {...p.separator, type: e.target.value}}))}>{SEPARATOR_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>{design.separator.type === 'custom' && <label className="bg-gray-100 mt-2 cursor-pointer px-3 py-1 rounded border text-xs block text-center">Upload<input type="file" accept="image/*" className="hidden" onChange={handleSeparatorUpload} /></label>}</div>
+                       <div><label className="text-xs font-bold block mb-1">Line Spacing</label><input type="range" min="1" max="5" step="0.5" value={design.spacing} onChange={e => setDesign(p => ({...p, spacing: parseFloat(e.target.value)}))} className="w-full" /></div>
                     </div>
+                </DesignSection>
+             </div>
 
-                    {/* --- RIGHT PREVIEW AREA --- */}
-                    <div className="flex-1 bg-gray-200 overflow-auto p-4 md:p-8 flex justify-center items-start">
-                        
-                        {/* THE RENDERED CARD */}
-                        <div 
-                            ref={previewRef}
-                            id="menu-preview"
-                            className={`
-                                w-full max-w-[210mm] min-h-[297mm] shadow-2xl relative transition-all duration-300
-                                ${design.theme.bg} ${design.theme.text} ${design.theme.border}
-                                flex flex-col
-                            `}
-                        >
-                            {/* Header */}
-                            <div className="p-8 pb-4 text-center">
-                                {design.showLogo && (
-                                    <img src={design.logoUrl} alt="Logo" className="h-20 mx-auto mb-4 object-contain drop-shadow-md" onError={(e) => e.target.style.display='none'} />
-                                )}
-                                <h2 className="text-sm uppercase tracking-widest opacity-80 mb-2">122 Bn Officers' Mess</h2>
-                                <h1 className={`${design.fontTitle.class} text-5xl md:text-6xl mb-2 font-bold`}>
-                                    {eventDetails.type}
-                                </h1>
-                                <div className="flex justify-center items-center gap-4 text-sm md:text-base mt-4 font-serif opacity-90 border-t border-b border-current py-2 mx-auto max-w-lg">
-                                    <span>{new Date(eventDetails.date).toDateString()}</span>
-                                    <span>•</span>
-                                    <span>{eventDetails.time}</span>
-                                    <span>•</span>
-                                    <span>{eventDetails.venue}</span>
-                                </div>
-                                <div className="mt-2 text-xs md:text-sm italic">
-                                    Dress: {eventDetails.dressCode}
-                                </div>
-                            </div>
-
-                            {/* Menu Content */}
-                            <div className="flex-1 p-8 pt-2 grid grid-cols-1 md:grid-cols-2 gap-8 content-start">
-                                
-                                {/* DRINKS SECTION (Left Column usually, or top) */}
-                                {!design.teetotallerMode && (menuSelection.cocktails.length > 0 || menuSelection.mocktails.length > 0 || menuSelection.spirits.length > 0) && (
-                                    <div className="col-span-1 md:col-span-2 text-center mb-6">
-                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>From the Bar</h3>
-                                        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-lg">
-                                            {menuSelection.cocktails.map((c, i) => <span key={`cocktail-${i}`} className="font-semibold">{c.name}</span>)}
-                                            {menuSelection.mocktails.map((m, i) => <span key={`mocktail-${i}`} className="font-semibold text-green-700">{m.name}</span>)}
-                                            {menuSelection.spirits.map((s, i) => <span key={`spirit-${i}`} className="opacity-90">{s}</span>)}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* STARTERS */}
-                                {(menuSelection.starters_veg.length > 0 || menuSelection.starters_nonveg.length > 0) && (
-                                    <div className="col-span-1 md:col-span-2 text-center mb-4">
-                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Appetizers</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
-                                            {menuSelection.starters_veg.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Vegetarian</h4>
-                                                    <ul className="space-y-1">
-                                                        {menuSelection.starters_veg.map((item, i) => <li key={i}>{item}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                            {menuSelection.starters_nonveg.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Non-Vegetarian</h4>
-                                                    <ul className="space-y-1">
-                                                        {menuSelection.starters_nonveg.map((item, i) => <li key={i}>{item}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* SOUPS & SALADS */}
-                                {(menuSelection.soups.length > 0 || menuSelection.salads.length > 0) && (
-                                    <div className="col-span-1 text-center">
-                                         <h3 className={`${design.fontTitle.class} text-2xl mb-3 border-b border-current inline-block px-4`}>Soup & Salad</h3>
-                                         <ul className="space-y-1">
-                                             {menuSelection.soups.map((item, i) => <li key={`s-${i}`}>{item}</li>)}
-                                             {menuSelection.salads.map((item, i) => <li key={`sl-${i}`}>{item}</li>)}
-                                         </ul>
-                                    </div>
-                                )}
-
-                                {/* BREADS & RICE */}
-                                {(menuSelection.breads.length > 0 || menuSelection.rice.length > 0) && (
-                                    <div className="col-span-1 text-center">
-                                         <h3 className={`${design.fontTitle.class} text-2xl mb-3 border-b border-current inline-block px-4`}>Accompaniments</h3>
-                                         <ul className="space-y-1">
-                                             {menuSelection.breads.map((item, i) => <li key={`b-${i}`}>{item}</li>)}
-                                             {menuSelection.rice.map((item, i) => <li key={`r-${i}`}>{item}</li>)}
-                                         </ul>
-                                    </div>
-                                )}
-
-                                {/* MAIN COURSE */}
-                                {(menuSelection.main_veg.length > 0 || menuSelection.main_nonveg.length > 0) && (
-                                    <div className="col-span-1 md:col-span-2 text-center mt-4">
-                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Main Course</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
-                                            {menuSelection.main_veg.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Vegetarian</h4>
-                                                    <ul className="space-y-1">
-                                                        {menuSelection.main_veg.map((item, i) => <li key={i}>{item}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                            {menuSelection.main_nonveg.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Non-Vegetarian</h4>
-                                                    <ul className="space-y-1">
-                                                        {menuSelection.main_nonveg.map((item, i) => <li key={i}>{item}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* DESSERTS */}
-                                {menuSelection.desserts.length > 0 && (
-                                    <div className="col-span-1 md:col-span-2 text-center mt-6">
-                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Dessert</h3>
-                                        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-lg">
-                                            {menuSelection.desserts.map((item, i) => <li key={i}>{item}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            <div className="p-8 pt-0 text-center opacity-70 text-sm mt-auto">
-                                <p>Hosted by: {eventDetails.host}</p>
-                                <p className="text-xs mt-1">RSVP Requested</p>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <RecipeModal isOpen={!!recipeItem} onClose={() => setRecipeItem(null)} item={recipeItem} />
+             {/* PREVIEW */}
+             <div className="col-span-8 xl:col-span-9 bg-gray-200 rounded-xl overflow-hidden flex items-center justify-center p-8 relative">
+                <div className="absolute top-4 right-4 text-xs font-bold text-gray-500 bg-white/80 px-2 py-1 rounded">Live Preview</div>
+                <div className="transform scale-[0.6] lg:scale-[0.75] origin-top shadow-2xl transition-all duration-300">
+                   <InviteCard data={eventData} menu={selectedMenu} design={design} showAlcohol={showAlcohol} />
                 </div>
-            );
-        };
+             </div>
+          </div>
+        )}
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+        {/* PRINT TAB */}
+        {activeTab === 'preview' && (
+           <div className="flex flex-col items-center animate-in slide-in-from-bottom-4">
+              
+              <div className="bg-white p-4 rounded-xl shadow-md border mb-8 w-full max-w-4xl">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 border-b pb-2"><Download className="w-5 h-5 text-blue-600"/> Export & Share Options</h3>
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                   
+                   <button onClick={() => setActiveTab('design')} className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-2 text-sm font-medium">
+                      <Sliders className="w-4 h-4"/> Edit Design
+                   </button>
+
+                   <div className="h-8 w-px bg-gray-300 hidden md:block"></div>
+
+                   <button onClick={handlePrint} className="px-5 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                      <Printer className="w-4 h-4"/> Save as PDF
+                   </button>
+
+                   <button onClick={() => handleDownloadImage('jpg')} className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                      <ImageIcon className="w-4 h-4"/> Save JPG
+                   </button>
+
+                   <button onClick={() => handleDownloadImage('png')} className="px-5 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                      <FileImage className="w-4 h-4"/> Save PNG
+                   </button>
+
+                   <div className="h-8 w-px bg-gray-300 hidden md:block"></div>
+
+                   <button onClick={handleWhatsAppShare} className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                      <MessageCircle className="w-4 h-4"/> Share WhatsApp
+                   </button>
+
+                </div>
+                <p className="text-xs text-gray-500 mt-3 italic text-center md:text-left">* For WhatsApp: Download the image first, then click "Share WhatsApp" to send the text details and attach the image manually.</p>
+              </div>
+
+              <div className="overflow-auto max-w-full border-4 border-gray-300 rounded-lg">
+                 <div ref={printRef} className="shadow-2xl"><InviteCard data={eventData} menu={selectedMenu} design={design} showAlcohol={showAlcohol} /></div>
+              </div>
+           </div>
+        )}
+      </main>
+      
+      {/* COCKTAIL INFO MODAL */}
+      {cocktailModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+           <div className="bg-white p-6 rounded-lg max-w-sm w-full shadow-2xl">
+              <h3 className="font-bold mb-2 text-xl">{cocktailModal.name}</h3>
+              <p className="text-sm font-bold text-gray-500 uppercase mb-1">Ingredients (Exact)</p>
+              <p className="text-sm text-gray-800 mb-3 font-mono">{cocktailModal.ingredients}</p>
+              <p className="text-sm font-bold text-gray-500 uppercase mb-1">Method / Tip</p>
+              <p className="text-sm text-gray-600 italic mb-4">{cocktailModal.tip}</p>
+              <button onClick={() => setCocktailModal(null)} className="w-full bg-slate-900 text-white py-2 rounded font-bold">Close</button>
+           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- SUB COMPONENTS ---
+const InputGroup = ({ label, ...props }) => (<div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">{label}</label><input className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none" {...props} /></div>);
+const DesignSection = ({ title, icon: Icon, children }) => (<div className="border-b pb-4 last:border-0"><h3 className="font-bold text-sm text-gray-800 mb-3 flex items-center gap-2"><Icon className="w-4 h-4 text-gray-500"/> {title}</h3>{children}</div>);
+
+// CUSTOM ITEM HANDLER FIXED
+const CheckboxGrid = ({ items, selected = [], category, toggle, onCustom }) => {
+  const [val, setVal] = useState('');
+  return (
+    <div className="space-y-2">
+       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+          {items.map(item => (
+             <label key={item} className="flex gap-2 items-start cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={selected.includes(item)} onChange={() => toggle(category, item)} className="mt-1" /><span className="text-xs leading-tight">{item}</span></label>
+          ))}
+          {selected.filter(i => !items.includes(i)).map(item => (
+            <label key={item} className="flex gap-2 items-start cursor-pointer bg-yellow-50 p-1 rounded"><input type="checkbox" checked={true} onChange={() => toggle(category, item)} className="mt-1" /><span className="text-xs leading-tight italic">{item} (Custom)</span></label>
+          ))}
+       </div>
+       <div className="flex gap-2 mt-2"><input type="text" placeholder="+ Add Custom" className="border rounded px-2 py-1 text-xs flex-1" value={val} onChange={e=>setVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (onCustom(category, val), setVal(''))} /><button onClick={() => {onCustom(category, val); setVal('')}} className="text-xs bg-blue-100 text-blue-700 px-2 rounded"><Plus className="w-3 h-3"/></button></div>
+    </div>
+  );
+};
+
+// COCKTAIL GRID WITH INFO BUTTON RESTORED
+const CocktailGrid = ({ items, selected = [], category = 'cocktails', toggle, onInfo, onCustom }) => {
+   const [val, setVal] = useState('');
+   return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+         {items.map(item => (
+           <div key={item.id} className="flex items-center justify-between p-1 border rounded hover:bg-slate-50">
+             <label className="flex items-center gap-2 cursor-pointer flex-1"><input type="checkbox" checked={selected && selected.includes(item.name)} onChange={() => toggle(category, item.name)} /><span className="text-xs font-medium">{item.name}</span></label>
+             <button onClick={() => onInfo(item)} className="text-blue-500 hover:bg-blue-100 rounded-full p-1"><Info className="w-3 h-3"/></button>
+           </div>
+         ))}
+         {/* Custom Cocktails */}
+         {selected && selected.filter(name => !items.find(i => i.name === name)).map(name => (
+            <div key={name} className="flex items-center justify-between p-1 border rounded bg-yellow-50">
+               <label className="flex items-center gap-2 cursor-pointer flex-1"><input type="checkbox" checked={true} onChange={() => toggle(category, name)} /><span className="text-xs font-medium italic">{name}</span></label>
+            </div>
+         ))}
+      </div>
+      <div className="flex gap-2 mt-2"><input type="text" placeholder="+ Add Custom" className="border rounded px-2 py-1 text-xs flex-1" value={val} onChange={e=>setVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (onCustom(category, val), setVal(''))} /><button onClick={() => {onCustom(category, val); setVal('')}} className="text-xs bg-blue-100 text-blue-700 px-2 rounded"><Plus className="w-3 h-3"/></button></div>
+    </div>
+   );
+};
+
+const MenuAccordion = ({ title, children }) => { const [open, setOpen] = useState(false); return (<div className="border rounded bg-white overflow-hidden"><button onClick={() => setOpen(!open)} className="w-full p-3 flex justify-between font-bold text-sm bg-gray-50">{title} {open ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}</button>{open && <div className="p-4">{children}</div>}</div>)};
+const SubSection = ({ title, children }) => <div className="mb-4"><h4 className="text-xs font-bold text-gray-500 uppercase mb-2">{title}</h4>{children}</div>;
+
+// --- ADVANCED RENDERER ---
+const InviteCard = ({ data, menu, design, showAlcohol }) => {
+  const theme = THEMES[design.theme];
+  
+  const getFont = (type) => {
+    const map = { 
+      serif: 'font-serif', sans: 'font-sans', mono: 'font-mono', cursive: 'font-[cursive]', hand: 'font-sans', 
+      georgia: 'font-serif', verdana: 'font-sans', courier: 'font-mono', brush: 'font-[cursive]', impact: 'font-sans font-black',
+      cinzel: 'font-[Cinzel]', playfair: 'font-[Playfair Display]', greatvibes: 'font-[Great Vibes]', montserrat: 'font-[Montserrat]', lato: 'font-[Lato]',
+      merriweather: 'font-[Merriweather]', opensans: 'font-[Open Sans]', pinyon: 'font-[Pinyon Script]', allura: 'font-[Allura]'
+    };
+    return map[design.fonts[type]];
+  };
+
+  const getTextStyle = (type) => {
+    return {
+      fontSize: `${design.fontSizes[type]}rem`,
+      color: design.textColors[type],
+      fontWeight: design.fontStyles[type].bold ? 'bold' : 'normal',
+      fontStyle: design.fontStyles[type].italic ? 'italic' : 'normal'
+    };
+  };
+
+  const getBgStyle = () => {
+    if (design.background.type === 'solid') return { backgroundColor: design.background.color, color: theme.text };
+    const { gradientType, gradientDirection, gradientStart, gradientEnd } = design.background;
+    return { backgroundImage: `${gradientType === 'radial' ? 'radial-gradient(circle at center' : `linear-gradient(${gradientDirection}`}, ${gradientStart}, ${gradientEnd})`, color: theme.text };
+  };
+
+  // REFINED BORDER LOGIC (100% CSS/Robust)
+  const getBorderStyle = () => {
+    const { type, size, color, useGradient, gradientStart, gradientEnd, customSrc } = design.border;
+    const baseColor = useGradient ? 'transparent' : color;
+    const gradImg = useGradient ? `linear-gradient(to right, ${gradientStart}, ${gradientEnd}) 1` : undefined;
+    
+    // 1. Classic Frame (CSS based)
+    if (type === 'classic-frame') {
+      return { border: `${size}px solid ${baseColor}`, outline: `2px solid ${baseColor}`, outlineOffset: `-${size * 1.5}px` };
+    }
+    // 2. Certificate (CSS based)
+    if (type === 'certificate') {
+      return { border: `${size}px double ${baseColor}`, outline: `1px solid ${baseColor}`, outlineOffset: `6px` };
+    }
+    // 3. Double Gold (CSS based - Fixed for gradients by using outline instead of inset shadow)
+    if (type === 'double-gold') {
+      return { border: `${size}px solid ${baseColor}`, outline: `2px solid ${baseColor}`, outlineOffset: `-${size + 4}px` };
+    }
+
+    // Standard Styles
+    if (['solid', 'dashed', 'dotted', 'double'].includes(type)) {
+      return { borderWidth: `${size}px`, borderStyle: type, borderColor: baseColor, borderImage: gradImg };
+    }
+    
+    // Complex Styles
+    if (type === 'thick-thin') return { border: `${size}px double ${baseColor}`, boxShadow: `0 0 0 2px ${baseColor}` };
+    if (type === 'thin-thick') return { border: `2px solid ${baseColor}`, boxShadow: `inset 0 0 0 ${size}px ${baseColor}` };
+    if (type === 'triple') return { border: `${size}px solid ${baseColor}`, outline: `${size/2}px solid ${baseColor}`, outlineOffset: `-${size*1.5}px` };
+    
+    if (type === 'art-deco') return { border: `${size}px double ${baseColor}`, outline: `2px solid ${baseColor}`, outlineOffset: '4px' };
+    
+    // Custom & Fallbacks
+    if (type === 'custom' && customSrc) return { border: `${size}px solid transparent`, borderImageSource: `url(${customSrc})`, borderImageSlice: 30 };
+    
+    return { borderWidth: `${size}px`, borderStyle: type, borderColor: baseColor, borderImage: gradImg };
+  };
+
+  const Separator = () => {
+    const { type, color, size, customSrc } = design.separator;
+    if (type === 'none') return null;
+    if (type === 'custom' && customSrc) return <img src={customSrc} className="h-4 mx-auto my-1 opacity-70" alt="sep" />;
+    
+    const symbolMap = { stars:'★ ★ ★', dots:'• • •', dash:'- - -', double:'=', wavy:'~~~', diamond:'♦ ♦ ♦', circle:'○ ○ ○', plus:'+ + +', cross:'x x x', swords:'⚔ ⚔ ⚔', fleur:'⚜ ⚜ ⚜', anchor:'⚓ ⚓ ⚓', bullet:'• • •', arrow:'↔ ↔ ↔', tilde:'~.~', heart:'♥ ♥ ♥', square:'■ ■ ■' };
+    
+    if (symbolMap[type]) return <div className="text-center text-xs opacity-60 my-1 tracking-[0.3em]" style={{ color }}>{symbolMap[type]}</div>;
+    return <div className="border-t my-2 opacity-40" style={{ borderColor: color, borderWidth: `${size}px` }}></div>;
+  };
+
+  const renderSection = (title, items) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="mb-4 break-inside-avoid" style={{ marginBottom: `${design.spacing * 0.75}rem` }}>
+         <h3 className={`text-center uppercase tracking-widest opacity-70 mx-8 mb-2 ${getFont('sub')}`} style={{ borderColor: theme.accent, borderBottomWidth: '1px', ...getTextStyle('sub') }}>{title}</h3>
+         <div className={`flex flex-wrap justify-center gap-x-1 gap-y-1 text-center ${getFont('items')}`} style={getTextStyle('items')}>
+            {items.map((item, i) => (<span key={i} className="leading-snug">{item}{i < items.length - 1 ? <span className="opacity-40 mx-1">•</span> : ''}</span>))}
+         </div>
+         <Separator />
+      </div>
+    );
+  };
+
+  // UPDATED PADDING TO PREVENT OVERLAP
+  const borderPadding = Math.max(32, design.border.size + 24); 
+
+  return (
+    <div className="w-[210mm] min-h-[297mm] relative flex flex-col shadow-none overflow-hidden box-border print:shadow-none" style={getBgStyle()}>
+      {/* Border Layer */}
+      <div className="absolute inset-4 pointer-events-none z-10" style={getBorderStyle()} />
+      {/* Mask Fallback for very complex styles to ensure clipping if needed */}
+      <div className="absolute inset-4 pointer-events-none z-10 opacity-10" style={{ boxShadow: `inset 0 0 20px ${theme.bg}` }}></div>
+      
+      {/* Content Layer with SAFE PADDING */}
+      <div className="relative z-20 flex flex-col h-full" style={{ padding: `${borderPadding}px`, gap: `${design.spacing}rem` }}>
+         <div className={`text-center relative ${getFont('main')}`}>
+           {design.logo.show && design.logo.position !== 'watermark' && (
+             <div className={`mb-4 flex ${design.logo.position === 'top-left' ? 'justify-start' : 'justify-center'}`}>
+                {design.logo.src ? <img src={design.logo.src} style={{ width: design.logo.size }} alt="Logo" /> : <svg width={design.logo.size} height={design.logo.size} viewBox="0 0 100 100" fill="none" stroke="currentColor" className="opacity-80"><path d="M50 5 L90 20 L80 90 L50 95 L20 90 L10 20 Z" strokeWidth="2" /><text x="50" y="60" textAnchor="middle" fontSize="40">🛡️</text></svg>}
+             </div>
+           )}
+           <h1 className="uppercase tracking-[0.2em] mb-2" style={getTextStyle('main')}>{data.unit}</h1>
+           <h2 className="uppercase tracking-widest opacity-80 mb-6" style={{ ...getTextStyle('main'), fontSize: `${design.fontSizes.main * 0.5}rem` }}>{data.eventType}</h2>
+           <div className={`space-y-2 opacity-90 ${getFont('sub')}`} style={getTextStyle('sub')}>
+              <p>{data.host}</p>
+              <p className="text-sm italic opacity-70">{data.inviteLine1}</p>
+              {data.inviteLine2 && <p className="text-sm italic opacity-70">{data.inviteLine2}</p>}
+              <div className="py-2 my-2 border-t border-b border-current border-opacity-30 inline-block px-12 min-w-[300px]" style={{ fontWeight: 'bold' }}>{data.invitee || "......................................."}</div>
+              <p>On <strong>{data.date || "................"}</strong> at <strong>{data.time || "...."} hrs</strong></p><p>At {data.venue}</p>
+           </div>
+         </div>
+         {design.logo.show && design.logo.position === 'watermark' && design.logo.src && <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10"><img src={design.logo.src} style={{ width: design.logo.size * 2 }} alt="Watermark" /></div>}
+         
+         <div className="flex-1 grid grid-cols-2 gap-12 mt-4 relative">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px opacity-30 bg-current"></div>
+            <div>
+               {showAlcohol && ( <> {renderSection("Spirits", [...(menu['bar_sm']||[]), ...(menu['bar_bl']||[]), ...(menu['bar_br']||[]), ...(menu['bar_rum']||[]), ...(menu['bar_vodka']||[]), ...(menu['bar_gin']||[]), ...(menu['bar_beer']||[])])} {renderSection("Cocktails", menu['cocktails'])} </> )}
+               {renderSection("Mocktails", menu['mocktails'])} 
+               {renderSection("Juices & Beverages", [...(menu['juices']||[]), ...(menu['hotDrinks']||[]), ...(menu['softDrinks']||[])])}
+               {renderSection("Refreshments", menu['refresh'])} {renderSection("Veg Starters", menu['start_v'])} {renderSection("Non-Veg Starters", menu['start_nv'])}
+            </div>
+            <div>{renderSection("Soups/Salads", [...(menu['soups']||[]), ...(menu['salads']||[])])} {renderSection("Accompaniments", [...(menu['chutneys']||[]), ...(menu['raita']||[]), ...(menu['papad']||[])])} {renderSection("Veg Mains", menu['mains_v'])} {renderSection("Non-Veg Mains", menu['mains_nv'])} {renderSection("Rice & Breads", [...(menu['rice']||[]), ...(menu['breads']||[])])} {renderSection("Dessert", menu['desserts'])}</div>
+         </div>
+         <div className={`mt-auto pt-8 flex justify-between uppercase tracking-wider opacity-80 ${getFont('sub')}`} style={{ ...getTextStyle('sub'), fontSize: '0.8rem' }}><div>RSVP: {data.rsvp}</div><div>Dress: {data.dress}</div></div>
+      </div>
+    </div>
+  );
+};
