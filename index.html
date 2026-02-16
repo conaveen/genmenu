@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>122 Bn Officers' Mess - Menu Designer</title>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTML2Canvas & jsPDF for Export -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Print Specifics */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+
+        /* Victorian Borders & Textures */
+        .border-victorian-1 { border: 4px double #DAA520; outline: 2px solid #8B4513; outline-offset: 4px; }
+        .border-victorian-2 { border: 8px solid transparent; padding: 10px; border-image: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h10v10H0zm20 20h10v10H20zM0 20h10v10H0zM20 0h10v10H20z' fill='%23DAA520' fill-opacity='0.4'/%3E") 30; }
+        .border-classic-simple { border: 1px solid #000; padding: 4px; outline: 1px solid #000; outline-offset: 4px; }
+        .border-modern-gradient { border: 4px solid; border-image-slice: 1; border-image-source: linear-gradient(to left, #743ad5, #d53a9d); }
+        .border-chalk { border: 3px dashed rgba(255,255,255,0.7); border-radius: 8px; }
+        
+        .bg-parchment { background-color: #fdfbf7; background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); }
+        .bg-chalkboard { background-color: #2b2b2b; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // --- ICONS (Embedded directly) ---
+        const IconBase = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const ChefHat = (props) => <IconBase {...props}><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 9.08 0A5.11 5.11 0 0 1 18.59 6 4 4 0 0 1 20 13.87V21H6Z"/><path d="M6 17h14"/></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
+        const Share2 = (props) => <IconBase {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></IconBase>;
+        const Plus = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
+
+        // --- DATABASE ---
+        const MESS_MENU_DB = {
+            starters_veg: [
+                "Paneer Tikka Sufiyana", "Hara Bhara Kebab", "Crispy Corn & Spinach Balls", "Tandoori Mushroom", "Dahi Ke Shole", 
+                "Veg Gold Coin", "Cheese Cherry Pineapple", "Achari Paneer Tikka", "Veg Spring Rolls", "Honey Chilli Potato",
+                "Corn Salt & Pepper", "Veg Shammi Kebab", "Beetroot Cutlet", "Stuffed Tandoori Aloo", "Paneer Malai Tikka",
+                "Cajun Spiced Potato", "Veg Seekh Kebab", "Mushroom Duplex", "Crispy Lotus Stem", "Cheese Balls",
+                "Gobi Manchurian Dry", "Babycorn Fritters", "Paneer 65", "Veg Lollipop", "Rajma Galouti",
+                "Kurkuri Bhindi", "Moong Dal Bhajiya", "Soya Chaap Tikka", "Falafel with Hummus", "Bruschetta Tomato Basil",
+                "Mini Samosa", "Khandvi", "Dhokla Bites", "Aloo Nazakat", "Paneer Shashlik", "Vegetable Tempura",
+                "Corn Cheese Kebab", "Spinach Cheese Cigars", "Veg Momos (Fried/Steamed)", "Mexican Tacos (Mini)", "Zucchini Fritters"
+            ],
+            starters_nonveg: [
+                "Chicken Tikka", "Mutton Seekh Kebab", "Fish Amritsari", "Chicken 65", "Galouti Kebab", 
+                "Chicken Malai Tikka", "Tangri Kebab", "Fish Fingers", "Golden Fried Prawns", "Chicken Lollipop",
+                "Mutton Shammi Kebab", "Chilli Chicken Dry", "Prawns Koliwada", "Apollo Fish", "Chicken Reshmi Kebab",
+                "Mutton Burra", "Tandoori Chicken (Half)", "Lemon Chicken Dry", "Chicken Pakora", "Fish Orly",
+                "Mutton Kola Urundai", "Pathar Ka Gosht", "Chicken Ghee Roast (Dry)", "Egg 65", "Devilled Eggs",
+                "Chicken Satay", "Peri Peri Wings", "Drums of Heaven", "Fish Tikka Ajwaini", "Mutton Pepper Fry",
+                "Chicken Seekh Gilafi", "Prawns Tempura", "Kalmi Kebab", "Bhatti Ka Murgh", "Chicken Majestic",
+                "Lamb Chops", "Fish Cakes", "Chicken Nuggets (Homemade)", "Chapli Kebab", "Squid Rings (Calamari)", "Achari Fish Tikka"
+            ],
+            main_veg: [
+                "Paneer Butter Masala", "Dal Makhani", "Kadhai Paneer", "Malai Kofta", "Mixed Vegetable Jalfrezi", 
+                "Palak Paneer", "Mushroom Do Pyaza", "Dum Aloo Kashmiri", "Bhindi Masala", "Baingan Bharta", 
+                "Dal Tadka (Yellow)", "Chana Masala", "Navratan Korma", "Vegetable Au Gratin", "Baked Vegetables", 
+                "Paneer Lababdar", "Methi Malai Matar", "Aloo Gobi Adraki", "Vegetable Kolhapuri", "Corn Palak", 
+                "Shahi Paneer", "Veg Manchurian Gravy", "Thai Green Curry (Veg)", "Stuffed Capsicum", "Jeera Aloo",
+                "Sarson Ka Saag", "Rajma Masala", "Kadhi Pakora", "Paneer Pasanda", "Vegetable Stew", 
+                "Diwani Handi", "Tawa Sabzi", "Bagara Baingan", "Lauki Kofta", "Matar Mushroom", 
+                "Vegetable Lasagna", "Pasta Alfredo", "Ratatouille", "Broccoli Almondine", "Spinach Corn Casserole",
+                "Gatte Ki Sabzi", "Ker Sangri", "Undhiyu", "Avial", "Poriyal"
+            ],
+            main_nonveg: [
+                "Butter Chicken", "Mutton Rogan Josh", "Chicken Curry (Home Style)", "Fish Curry (Goan)", "Laal Maas", 
+                "Mutton Do Pyaza", "Chicken Chettinad", "Kadai Chicken", "Mutton Korma", "Fish Moilee", 
+                "Prawn Malai Curry", "Chicken Korma", "Mutton Rara", "Egg Curry", "Chicken Lababdar", 
+                "Bhuna Gosht", "Railway Mutton Curry", "Chicken Stew", "Fish Tikka Masala", "Prawns Balchao", 
+                "Chicken Tikka Masala", "Mutton Yakhni", "Chicken Vindaloo", "Keema Matar", "Nihari", 
+                "Roast Chicken with Rosemary", "Grilled Fish Lemon Butter", "Chicken Stroganoff", "Shepherd's Pie", "Lamb Stew",
+                "Chicken Manchurian Gravy", "Kung Pao Chicken", "Chilli Fish Gravy", "Thai Red Curry (Chicken)", "Chicken Cafreal",
+                "Kosha Mangsho", "Methi Chicken", "Saag Wala Meat", "Handi Chicken", "Murgh Musallam", 
+                "Mutton Beliram", "Gongura Chicken", "Fish Pulusu", "Crab Curry", "Pork Vindaloo (Optional)"
+            ],
+            rice: [
+                "Jeera Rice", "Peas Pulao", "Vegetable Biryani", "Hyderabadi Chicken Biryani", "Mutton Biryani (Lucknowi)", 
+                "Steamed Basmati Rice", "Kashmiri Pulao", "Egg Biryani", "Fried Rice (Veg/Chicken)", "Schezwan Rice", 
+                "Lemon Rice", "Curd Rice", "Ghee Rice", "Saffron Rice", "Brown Rice"
+            ],
+            breads: [
+                "Tandoori Roti", "Butter Naan", "Garlic Naan", "Missi Roti", "Laccha Paratha", 
+                "Kulcha (Paneer/Aloo)", "Roomali Roti", "Pudina Paratha", "Bread Basket (Dinner Rolls)", "Bhature", "Puri"
+            ],
+            soups: [
+                "Cream of Tomato", "Sweet Corn (Veg/Chicken)", "Hot & Sour", "Manchow", "Mulligatawny Soup", 
+                "Lemon Coriander", "Cream of Mushroom", "Minestrone", "Yakhni Shorba", "Tamatar Dhaniya Shorba", 
+                "French Onion Soup", "Chicken Clear Soup"
+            ],
+            salads: [
+                "Green Salad", "Russian Salad", "Waldorf Salad", "Caesar Salad", "Kachumber Salad", 
+                "Sprouted Moong Salad", "Macaroni Salad", "Coleslaw", "Aloo Chana Chat", "Fruit Salad", 
+                "Kimchi", "Greek Salad", "Pasta Salad", "Laccha Onion"
+            ],
+            desserts: [
+                "Gulab Jamun", "Gajar Ka Halwa", "Moong Dal Halwa", "Rasmalai", "Ice Cream (Vanilla/Strawberry/Chocolate)", 
+                "Fruit Trifle", "Caramel Custard", "Chocolate Brownie with Ice Cream", "Shahi Tukda", "Kheer (Rice/Seviyan)", 
+                "Fruit Cream", "Soufflé (Mango/Chocolate)", "Apple Pie", "Jalebi with Rabri", "Tipsy Pudding", 
+                "Angoori Rabri", "Chocolate Mousse", "Cheesecake", "Kulfi Falooda", "Phirni", 
+                "Date Pancake", "Baked Yoghurt", "Tiramisu", "Cassata", "Hot Chocolate Fudge"
+            ],
+            cocktails: [
+                { name: "The Gunner", recipe: "Ginger Ale, Ginger Beer, Angostura Bitters", glass: "Highball", tips: "The quintessential mess drink. Non-alcoholic version exists." },
+                { name: "Old Fashioned", recipe: "Whiskey, Bitters, Sugar Cube, Water", glass: "Old Fashioned", tips: "Stir well with ice. Garnish with orange peel." },
+                { name: "Mojito", recipe: "White Rum, Mint, Lime, Soda, Sugar", glass: "Highball", tips: "Muddle mint gently." },
+                { name: "Bloody Mary", recipe: "Vodka, Tomato Juice, Tabasco, Worcestershire, Lemon", glass: "Highball", tips: "Garnish with celery stick." },
+                { name: "LIIT", recipe: "Vodka, Rum, Gin, Tequila, Triple Sec, Cola", glass: "Highball", tips: "Potent. Serve with plenty of ice." },
+                { name: "Whiskey Sour", recipe: "Whiskey, Lemon Juice, Sugar, Egg White (opt)", glass: "Old Fashioned", tips: "Shake dry first if using egg white." },
+                { name: "Gin & Tonic", recipe: "Gin, Tonic Water, Lime", glass: "Balloon/Highball", tips: "Use good quality tonic. Cucumber garnish works well." },
+                { name: "Screwdriver", recipe: "Vodka, Orange Juice", glass: "Highball", tips: "Simple and classic." },
+                { name: "Tom Collins", recipe: "Gin, Lemon Juice, Sugar, Soda", glass: "Highball", tips: "Refreshing summer drink." },
+                { name: "Margarita", recipe: "Tequila, Triple Sec, Lime Juice", glass: "Coupe", tips: "Salt rim is essential." },
+                { name: "Cosmopolitan", recipe: "Vodka, Triple Sec, Cranberry, Lime", glass: "Martini", tips: "Shake until chilled." },
+                { name: "Manhattan", recipe: "Rye Whiskey, Sweet Vermouth, Bitters", glass: "Coupe", tips: "Garnish with cherry." },
+                { name: "Martini (Dry)", recipe: "Gin, Dry Vermouth", glass: "Martini", tips: "Shaken or stirred. Olive or twist." },
+                { name: "Daiquiri", recipe: "White Rum, Lime Juice, Syrup", glass: "Coupe", tips: "Can be frozen or shaken." },
+                { name: "Espresso Martini", recipe: "Vodka, Coffee Liqueur, Espresso", glass: "Martini", tips: "Garnish with 3 coffee beans." },
+                { name: "Pina Colada", recipe: "Rum, Coconut Cream, Pineapple Juice", glass: "Hurricane", tips: "Blend with ice." },
+                { name: "Mai Tai", recipe: "Rum (Light & Dark), Lime, Orgeat, Orange Curacao", glass: "Old Fashioned", tips: "Tiki classic." },
+                { name: "Planter's Punch", recipe: "Dark Rum, Orange, Pineapple, Lemon, Grenadine", glass: "Highball", tips: "Fruity but strong." },
+                { name: "Moscow Mule", recipe: "Vodka, Ginger Beer, Lime", glass: "Copper Mug", tips: "The mug is iconic." },
+                { name: "Negroni", recipe: "Gin, Campari, Sweet Vermouth", glass: "Old Fashioned", tips: "Equal parts. Bitter aperitif." },
+                { name: "Black Russian", recipe: "Vodka, Coffee Liqueur", glass: "Old Fashioned", tips: "Serve over ice." },
+                { name: "Mint Julep", recipe: "Bourbon, Mint, Sugar, Water", glass: "Julep Cup", tips: "Crushed ice is mandatory." },
+                { name: "Sangria", recipe: "Red Wine, Chopped Fruit, Brandy, OJ", glass: "Wine Glass", tips: "Let sit for hours before serving." },
+                { name: "Tequila Sunrise", recipe: "Tequila, Orange Juice, Grenadine", glass: "Highball", tips: "Pour grenadine last for sunrise effect." },
+                { name: "Cuba Libre", recipe: "Rum, Cola, Lime", glass: "Highball", tips: "Basically Rum & Coke with lime." },
+                { name: "Gimlet", recipe: "Gin, Lime Cordial", glass: "Coupe", tips: "Sharp and sweet." }
+            ],
+            mocktails: [
+                { name: "Virgin Mojito", recipe: "Mint, Lemon, Sugar, Soda", glass: "Highball", tips: "Refreshing classic." },
+                { name: "Shirley Temple", recipe: "Ginger Ale, Grenadine", glass: "Highball", tips: "Garnish with a cherry." },
+                { name: "Fruit Punch", recipe: "Mixed Fruit Juices, Ice Cream (opt)", glass: "Hurricane", tips: "Crowd pleaser." },
+                { name: "Blue Lagoon", recipe: "Blue Curacao Syrup, Sprite, Lemon", glass: "Highball", tips: "Visual appeal." },
+                { name: "Cinderella", recipe: "Lemon, Orange, Pineapple Juice, Grenadine, Soda", glass: "Highball", tips: "Fruity tang." },
+                { name: "Virgin Mary", recipe: "Tomato Juice, Spices, Lemon", glass: "Highball", tips: "Spicy kick without alcohol." },
+                { name: "Mint Lemonade", recipe: "Lemon, Mint, Sugar, Water", glass: "Highball", tips: "Summer staple." },
+                { name: "Peach Iced Tea", recipe: "Black Tea, Peach Syrup", glass: "Highball", tips: "Serve chilled." },
+                { name: "Chapman", recipe: "Fanta, Sprite, Angostura, Grenadine, Cucumber", glass: "Mug", tips: "Nigerian classic popular in messes." },
+                { name: "Aam Panna", recipe: "Raw Mango, Spices", glass: "Old Fashioned", tips: "Traditional Indian cooler." },
+                { name: "Jaljeera", recipe: "Jaljeera powder, Water, Boondi", glass: "Highball", tips: "Digestive." },
+                { name: "Pink Lady", recipe: "Strawberry Crush, Milk/Cream", glass: "Fancy", tips: "Sweet treat." },
+                { name: "Mango Mule", recipe: "Mango Puree, Ginger Beer, Lime", glass: "Copper Mug", tips: "Twist on the mule." },
+                { name: "Pineapple Cobbler", recipe: "Pineapple Juice, Strawberry Juice, Soda", glass: "Highball", tips: "Sweet and sour." },
+                { name: "Virgin Pina Colada", recipe: "Pineapple Juice, Coconut Milk", glass: "Hurricane", tips: "Tropical vibes." },
+                { name: "Safe Sex on the Beach", recipe: "Cranberry, Grapefruit, Peach Nectar", glass: "Highball", tips: "Fruity mix." },
+                { name: "Watermelon Mojito", recipe: "Watermelon chunks, Mint, Soda", glass: "Highball", tips: "Fresh fruit is key." },
+                { name: "Kiwi Margerita (Virgin)", recipe: "Kiwi Crush, Lime, Sugar rim", glass: "Coupe", tips: "Tangy." },
+                { name: "Italian Smooch", recipe: "Ginger Ale, Lime, Cola splash", glass: "Highball", tips: "Fizzy delight." },
+                { name: "Masala Coke", recipe: "Cola, Chaat Masala, Lemon", glass: "Highball", tips: "Desi twist." },
+                { name: "Green Apple Soda", recipe: "Green Apple Syrup, Soda", glass: "Highball", tips: "Crisp taste." },
+                { name: "Lassi (Sweet/Salted)", recipe: "Yoghurt, Water, Spices", glass: "Tall Glass", tips: "Traditional." },
+                { name: "Thandai", recipe: "Milk, Nuts, Saffron", glass: "Tall Glass", tips: "Festive drink." },
+                { name: "Cold Coffee", recipe: "Coffee, Milk, Sugar, Ice Cream", glass: "Tall Glass", tips: "Add chocolate sauce." },
+                { name: "Fresh Lime Soda", recipe: "Soda, Lime, Sugar/Salt", glass: "Highball", tips: "The standard." }
+            ],
+            spirits: [
+                "Old Monk XXX Rum", "Bacardi White Rum", "Smirnoff Vodka", "Absolut Vodka", "Grey Goose", 
+                "Gordon's Gin", "Bombay Sapphire", "Teacher's Highland Cream", "Black Dog", "Chivas Regal (12 YO)", 
+                "Johnnie Walker Black Label", "Johnnie Walker Red Label", "Glenfiddich", "Glenlivet", "Jack Daniel's", 
+                "Jim Beam", "Antiquity Blue", "Blenders Pride", "Royal Challenge", "Signature", "Kingfisher Beer", "Heineken", "Corona"
+            ]
+        };
+
+        const FONTS = [
+            { name: "Classic Serif", class: "font-['Playfair_Display']" },
+            { name: "Modern Sans", class: "font-['Montserrat']" },
+            { name: "Elegant Script", class: "font-['Great_Vibes']" },
+            { name: "Cinzel (Roman)", class: "font-['Cinzel']" },
+            { name: "Handwritten", class: "font-['Patrick_Hand']" }
+        ];
+
+        const THEMES = [
+            { id: 'contemporary', name: 'Contemporary', bg: 'bg-white', border: 'border-modern-gradient', text: 'text-gray-800' },
+            { id: 'victorian', name: 'Victorian', bg: 'bg-parchment', border: 'border-victorian-1', text: 'text-[#5c4033]' },
+            { id: 'regal', name: 'Regal Blue', bg: 'bg-slate-900', border: 'border-double border-4 border-yellow-500', text: 'text-yellow-100' },
+            { id: 'chalkboard', name: 'Chalkboard', bg: 'bg-chalkboard', border: 'border-chalk', text: 'text-white font-patrick' },
+            { id: 'army', name: 'Olive Green', bg: 'bg-[#4b5320]', border: 'border-4 border-[#DAA520]', text: 'text-[#FFFDD0]' }
+        ];
+
+        // --- COMPONENTS ---
+
+        // 1. Modal for Recipes
+        const RecipeModal = ({ isOpen, onClose, item }) => {
+            if (!isOpen || !item) return null;
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in text-gray-800">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-2xl font-bold font-serif">{item.name}</h3>
+                            <button onClick={onClose}><X className="w-6 h-6 text-gray-500 hover:text-red-500" /></button>
+                        </div>
+                        <div className="space-y-3">
+                            <p><strong>Glass:</strong> {item.glass}</p>
+                            <p><strong>Ingredients:</strong> {item.recipe}</p>
+                            <div className="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
+                                <span className="font-semibold text-yellow-800">Tip:</span> {item.tips}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Main App Component
+        const App = () => {
+            // State
+            const [step, setStep] = useState(1); // 1: Event Details, 2: Menu Selection, 3: Design & Preview
+            const [eventDetails, setEventDetails] = useState({
+                type: 'Regimental Dinner',
+                host: 'CO, 122 Bn',
+                date: new Date().toISOString().split('T')[0],
+                time: '1930 Hrs',
+                venue: "Officers' Mess",
+                dressCode: 'Lounge Suit / Saree',
+                inviteeType: 'With Lady'
+            });
+            const [menuSelection, setMenuSelection] = useState({
+                starters_veg: [], starters_nonveg: [], main_veg: [], main_nonveg: [],
+                rice: [], breads: [], soups: [], salads: [], desserts: [],
+                cocktails: [], mocktails: [], spirits: []
+            });
+            
+            // Custom Items State
+            const [customItems, setCustomItems] = useState(() => {
+                const initial = {};
+                Object.keys(MESS_MENU_DB).forEach(k => initial[k] = []);
+                return initial;
+            });
+            const [customInputs, setCustomInputs] = useState({});
+
+            const [design, setDesign] = useState({
+                theme: THEMES[1], // Default Victorian
+                fontTitle: FONTS[3],
+                fontBody: FONTS[0],
+                showLogo: true,
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/41/India_Army_Flag.svg", // Placeholder
+                teetotallerMode: false
+            });
+            const [recipeItem, setRecipeItem] = useState(null);
+            const previewRef = useRef(null);
+
+            // Handlers
+            const handleDetailChange = (e) => setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
+            
+            const toggleMenuItem = (category, item) => {
+                const current = menuSelection[category];
+                const isSelected = category === 'cocktails' || category === 'mocktails' 
+                    ? current.some(i => i.name === item.name)
+                    : current.includes(item);
+                
+                let updated;
+                if (isSelected) {
+                    updated = category === 'cocktails' || category === 'mocktails'
+                        ? current.filter(i => i.name !== item.name)
+                        : current.filter(i => i !== item);
+                } else {
+                    updated = [...current, item];
+                }
+                setMenuSelection({ ...menuSelection, [category]: updated });
+            };
+
+            const handleAddCustom = (category) => {
+                const val = customInputs[category]?.trim();
+                if (!val) return;
+
+                // Check duplicates in DB or Custom
+                const isObj = ['cocktails', 'mocktails'].includes(category);
+                const existing = [...MESS_MENU_DB[category], ...customItems[category]];
+                
+                const exists = existing.some(i => {
+                    const iName = typeof i === 'object' ? i.name : i;
+                    return iName.toLowerCase() === val.toLowerCase();
+                });
+
+                if (exists) {
+                    alert("Item already exists!");
+                    return;
+                }
+
+                let newItem = val;
+                if (isObj) {
+                    newItem = { name: val, recipe: 'Custom Entry', glass: 'Standard', tips: 'Ask Chef' };
+                }
+
+                // Update Custom Items List
+                setCustomItems(prev => ({
+                    ...prev,
+                    [category]: [...prev[category], newItem]
+                }));
+
+                // Auto-select it
+                setMenuSelection(prev => ({
+                    ...prev,
+                    [category]: [...prev[category], newItem]
+                }));
+
+                // Clear input
+                setCustomInputs(prev => ({ ...prev, [category]: '' }));
+            };
+
+            const downloadImage = async () => {
+                if (!previewRef.current) return;
+                try {
+                    const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+                    const link = document.createElement('a');
+                    link.download = `Menu-${eventDetails.type.replace(/\s+/g, '_')}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (err) {
+                    alert("Error generating image. Please try again.");
+                }
+            };
+            
+            const shareMenu = async () => {
+                 if (!previewRef.current) return;
+                 try {
+                     const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+                     canvas.toBlob(async (blob) => {
+                        const file = new File([blob], "menu.png", { type: "image/png" });
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Mess Menu',
+                                text: `Menu for ${eventDetails.type}`
+                            });
+                        } else {
+                            alert("Sharing not supported on this browser/device. Please download instead.");
+                        }
+                     });
+                 } catch (err) {
+                     console.error(err);
+                 }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* --- LEFT SIDEBAR / CONTROLS --- */}
+                    <div className="w-full md:w-1/3 lg:w-1/4 bg-slate-800 text-white flex flex-col h-screen sticky top-0 overflow-hidden shadow-2xl z-10">
+                        <div className="p-4 bg-slate-900 border-b border-slate-700 flex items-center justify-between">
+                            <h1 className="text-xl font-bold flex items-center gap-2"><ChefHat className="text-yellow-500"/> Menu Designer</h1>
+                            <span className="text-xs bg-yellow-600 px-2 py-1 rounded">122 Bn</span>
+                        </div>
+                        
+                        {/* Navigation Steps */}
+                        <div className="flex bg-slate-700">
+                            <button onClick={() => setStep(1)} className={`flex-1 p-3 text-center text-sm ${step === 1 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>1. Details</button>
+                            <button onClick={() => setStep(2)} className={`flex-1 p-3 text-center text-sm ${step === 2 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>2. Food</button>
+                            <button onClick={() => setStep(3)} className={`flex-1 p-3 text-center text-sm ${step === 3 ? 'bg-yellow-600 font-bold' : 'hover:bg-slate-600'}`}>3. Design</button>
+                        </div>
+
+                        {/* Scrollable Content Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                            
+                            {/* STEP 1: EVENT DETAILS */}
+                            {step === 1 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Event Basics</h2>
+                                    <div>
+                                        <label className="text-xs text-slate-400">Function Type</label>
+                                        <select name="type" value={eventDetails.type} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1 focus:border-yellow-500 outline-none">
+                                            <option>Bada Khana</option>
+                                            <option>Regimental Dinner</option>
+                                            <option>Anniversary Dinner</option>
+                                            <option>At Home</option>
+                                            <option>Senior Officer Visit Lunch</option>
+                                            <option>Raising Day</option>
+                                            <option>Mess Night</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-400">Date</label>
+                                        <input type="date" name="date" value={eventDetails.date} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs text-slate-400">Time</label>
+                                            <input type="text" name="time" value={eventDetails.time} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400">Venue</label>
+                                            <input type="text" name="venue" value={eventDetails.venue} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-400">Dress Code</label>
+                                        <select name="dressCode" value={eventDetails.dressCode} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1">
+                                            <option>Lounge Suit / Saree</option>
+                                            <option>Formals / Saree / Salwar Kameez</option>
+                                            <option>6A / 6B</option>
+                                            <option>Civvies</option>
+                                            <option>Combats</option>
+                                            <option>Black Tie</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-400">Host/Organiser</label>
+                                        <input type="text" name="host" value={eventDetails.host} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1" />
+                                    </div>
+                                     <div>
+                                        <label className="text-xs text-slate-400">Invitee</label>
+                                        <select name="inviteeType" value={eventDetails.inviteeType} onChange={handleDetailChange} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1">
+                                            <option>With Lady</option>
+                                            <option>Stag</option>
+                                            <option>Family</option>
+                                        </select>
+                                    </div>
+                                    <button onClick={() => setStep(2)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded font-semibold mt-4">Next: Select Food</button>
+                                </div>
+                            )}
+
+                            {/* STEP 2: MENU SELECTION */}
+                            {step === 2 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Menu Items</h2>
+                                    <p className="text-xs text-slate-400">Expand categories to select items.</p>
+                                    
+                                    {Object.entries(MESS_MENU_DB).map(([key, dbItems]) => {
+                                        // Combine DB items and Custom Items
+                                        const allItems = [...dbItems, ...customItems[key]];
+
+                                        return (
+                                        <details key={key} className="group bg-slate-900 rounded border border-slate-700">
+                                            <summary className="flex cursor-pointer items-center justify-between p-3 font-medium text-slate-200 hover:bg-slate-800">
+                                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                                <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{menuSelection[key].length}</span>
+                                            </summary>
+                                            <div className="p-3 border-t border-slate-700">
+                                                <div className="max-h-60 overflow-y-auto mb-2">
+                                                    {allItems.map((item, idx) => {
+                                                        const itemName = typeof item === 'object' ? item.name : item;
+                                                        const isSelected = typeof item === 'object' 
+                                                            ? menuSelection[key].some(i => i.name === itemName)
+                                                            : menuSelection[key].includes(item);
+                                                        
+                                                        return (
+                                                            <div key={idx} className="flex items-center space-x-2 py-1 hover:bg-slate-800 rounded px-1">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleMenuItem(key, item)}
+                                                                    className="rounded text-yellow-600 focus:ring-yellow-500 bg-slate-700 border-slate-500"
+                                                                />
+                                                                <span className="text-sm text-slate-300 flex-1">{itemName}</span>
+                                                                {typeof item === 'object' && (
+                                                                    <button onClick={(e) => {e.preventDefault(); setRecipeItem(item);}} className="text-yellow-500 hover:text-white">
+                                                                        <Info size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                {/* CUSTOM ADD FIELD */}
+                                                <div className="mt-2 flex gap-2 pt-2 border-t border-slate-700">
+                                                    <input 
+                                                        type="text" 
+                                                        value={customInputs[key] || ''}
+                                                        onChange={(e) => setCustomInputs({...customInputs, [key]: e.target.value})}
+                                                        placeholder="Add custom item..."
+                                                        className="flex-1 bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white placeholder-slate-500 focus:border-yellow-500 outline-none"
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddCustom(key)}
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleAddCustom(key)}
+                                                        className="bg-yellow-600 text-white px-3 rounded hover:bg-yellow-500 transition-colors"
+                                                        title="Add Custom Item"
+                                                    >
+                                                        <Plus size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </details>
+                                    );
+                                    })}
+                                    <button onClick={() => setStep(3)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded font-semibold mt-4">Next: Design</button>
+                                </div>
+                            )}
+
+                            {/* STEP 3: DESIGN */}
+                            {step === 3 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h2 className="text-lg font-semibold text-yellow-400 border-b border-slate-600 pb-2">Design Studio</h2>
+                                    
+                                    <div>
+                                        <label className="text-xs text-slate-400">Visual Theme</label>
+                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                            {THEMES.map(t => (
+                                                <button 
+                                                    key={t.id}
+                                                    onClick={() => setDesign({...design, theme: t})}
+                                                    className={`p-2 text-xs rounded border ${design.theme.id === t.id ? 'border-yellow-500 bg-yellow-900/30' : 'border-slate-600 hover:bg-slate-800'}`}
+                                                >
+                                                    {t.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs text-slate-400">Header Font</label>
+                                        <select 
+                                            value={JSON.stringify(design.fontTitle)} 
+                                            onChange={(e) => setDesign({...design, fontTitle: JSON.parse(e.target.value)})}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm mt-1"
+                                        >
+                                            {FONTS.map((f, i) => <option key={i} value={JSON.stringify(f)}>{f.name}</option>)}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between py-2 border-t border-slate-700">
+                                        <span className="text-sm">Teetotaller Mode</span>
+                                        <button 
+                                            onClick={() => setDesign({...design, teetotallerMode: !design.teetotallerMode})}
+                                            className={`w-10 h-5 rounded-full relative ${design.teetotallerMode ? 'bg-green-600' : 'bg-slate-600'}`}
+                                        >
+                                            <div className={`absolute w-3 h-3 bg-white rounded-full top-1 transition-all ${design.teetotallerMode ? 'left-6' : 'left-1'}`}></div>
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between py-2 border-t border-slate-700">
+                                        <span className="text-sm">Show Logo</span>
+                                        <input type="checkbox" checked={design.showLogo} onChange={() => setDesign({...design, showLogo: !design.showLogo})} className="rounded text-yellow-600"/>
+                                    </div>
+                                    
+                                    {design.showLogo && (
+                                        <div>
+                                             <label className="text-xs text-slate-400">Logo URL</label>
+                                             <input 
+                                                type="text" 
+                                                value={design.logoUrl} 
+                                                onChange={(e) => setDesign({...design, logoUrl: e.target.value})}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs mt-1"
+                                                placeholder="https://..."
+                                             />
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 flex gap-2">
+                                        <button onClick={downloadImage} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded flex items-center justify-center gap-2">
+                                            <Download size={16}/> Save IMG
+                                        </button>
+                                        <button onClick={shareMenu} className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded flex items-center justify-center gap-2">
+                                            <Share2 size={16}/> Share
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+
+                    {/* --- RIGHT PREVIEW AREA --- */}
+                    <div className="flex-1 bg-gray-200 overflow-auto p-4 md:p-8 flex justify-center items-start">
+                        
+                        {/* THE RENDERED CARD */}
+                        <div 
+                            ref={previewRef}
+                            id="menu-preview"
+                            className={`
+                                w-full max-w-[210mm] min-h-[297mm] shadow-2xl relative transition-all duration-300
+                                ${design.theme.bg} ${design.theme.text} ${design.theme.border}
+                                flex flex-col
+                            `}
+                        >
+                            {/* Header */}
+                            <div className="p-8 pb-4 text-center">
+                                {design.showLogo && (
+                                    <img src={design.logoUrl} alt="Logo" className="h-20 mx-auto mb-4 object-contain drop-shadow-md" onError={(e) => e.target.style.display='none'} />
+                                )}
+                                <h2 className="text-sm uppercase tracking-widest opacity-80 mb-2">122 Bn Officers' Mess</h2>
+                                <h1 className={`${design.fontTitle.class} text-5xl md:text-6xl mb-2 font-bold`}>
+                                    {eventDetails.type}
+                                </h1>
+                                <div className="flex justify-center items-center gap-4 text-sm md:text-base mt-4 font-serif opacity-90 border-t border-b border-current py-2 mx-auto max-w-lg">
+                                    <span>{new Date(eventDetails.date).toDateString()}</span>
+                                    <span>•</span>
+                                    <span>{eventDetails.time}</span>
+                                    <span>•</span>
+                                    <span>{eventDetails.venue}</span>
+                                </div>
+                                <div className="mt-2 text-xs md:text-sm italic">
+                                    Dress: {eventDetails.dressCode}
+                                </div>
+                            </div>
+
+                            {/* Menu Content */}
+                            <div className="flex-1 p-8 pt-2 grid grid-cols-1 md:grid-cols-2 gap-8 content-start">
+                                
+                                {/* DRINKS SECTION (Left Column usually, or top) */}
+                                {!design.teetotallerMode && (menuSelection.cocktails.length > 0 || menuSelection.mocktails.length > 0 || menuSelection.spirits.length > 0) && (
+                                    <div className="col-span-1 md:col-span-2 text-center mb-6">
+                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>From the Bar</h3>
+                                        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-lg">
+                                            {menuSelection.cocktails.map((c, i) => <span key={`cocktail-${i}`} className="font-semibold">{c.name}</span>)}
+                                            {menuSelection.mocktails.map((m, i) => <span key={`mocktail-${i}`} className="font-semibold text-green-700">{m.name}</span>)}
+                                            {menuSelection.spirits.map((s, i) => <span key={`spirit-${i}`} className="opacity-90">{s}</span>)}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* STARTERS */}
+                                {(menuSelection.starters_veg.length > 0 || menuSelection.starters_nonveg.length > 0) && (
+                                    <div className="col-span-1 md:col-span-2 text-center mb-4">
+                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Appetizers</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                                            {menuSelection.starters_veg.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Vegetarian</h4>
+                                                    <ul className="space-y-1">
+                                                        {menuSelection.starters_veg.map((item, i) => <li key={i}>{item}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {menuSelection.starters_nonveg.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Non-Vegetarian</h4>
+                                                    <ul className="space-y-1">
+                                                        {menuSelection.starters_nonveg.map((item, i) => <li key={i}>{item}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SOUPS & SALADS */}
+                                {(menuSelection.soups.length > 0 || menuSelection.salads.length > 0) && (
+                                    <div className="col-span-1 text-center">
+                                         <h3 className={`${design.fontTitle.class} text-2xl mb-3 border-b border-current inline-block px-4`}>Soup & Salad</h3>
+                                         <ul className="space-y-1">
+                                             {menuSelection.soups.map((item, i) => <li key={`s-${i}`}>{item}</li>)}
+                                             {menuSelection.salads.map((item, i) => <li key={`sl-${i}`}>{item}</li>)}
+                                         </ul>
+                                    </div>
+                                )}
+
+                                {/* BREADS & RICE */}
+                                {(menuSelection.breads.length > 0 || menuSelection.rice.length > 0) && (
+                                    <div className="col-span-1 text-center">
+                                         <h3 className={`${design.fontTitle.class} text-2xl mb-3 border-b border-current inline-block px-4`}>Accompaniments</h3>
+                                         <ul className="space-y-1">
+                                             {menuSelection.breads.map((item, i) => <li key={`b-${i}`}>{item}</li>)}
+                                             {menuSelection.rice.map((item, i) => <li key={`r-${i}`}>{item}</li>)}
+                                         </ul>
+                                    </div>
+                                )}
+
+                                {/* MAIN COURSE */}
+                                {(menuSelection.main_veg.length > 0 || menuSelection.main_nonveg.length > 0) && (
+                                    <div className="col-span-1 md:col-span-2 text-center mt-4">
+                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Main Course</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                                            {menuSelection.main_veg.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Vegetarian</h4>
+                                                    <ul className="space-y-1">
+                                                        {menuSelection.main_veg.map((item, i) => <li key={i}>{item}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {menuSelection.main_nonveg.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-bold uppercase tracking-wider text-sm mb-2 opacity-70">Non-Vegetarian</h4>
+                                                    <ul className="space-y-1">
+                                                        {menuSelection.main_nonveg.map((item, i) => <li key={i}>{item}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* DESSERTS */}
+                                {menuSelection.desserts.length > 0 && (
+                                    <div className="col-span-1 md:col-span-2 text-center mt-6">
+                                        <h3 className={`${design.fontTitle.class} text-3xl mb-4 border-b border-current inline-block px-8`}>Dessert</h3>
+                                        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-lg">
+                                            {menuSelection.desserts.map((item, i) => <li key={i}>{item}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-8 pt-0 text-center opacity-70 text-sm mt-auto">
+                                <p>Hosted by: {eventDetails.host}</p>
+                                <p className="text-xs mt-1">RSVP Requested</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <RecipeModal isOpen={!!recipeItem} onClose={() => setRecipeItem(null)} item={recipeItem} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
